@@ -102,8 +102,8 @@ def send_webhook_notification(program_name, event_type, details="", status="info
     if is_discord:
         # Discord Embed 형식
         payload = {
+            "content": f"{config_data['emoji']} {config_data['title']}",
             "embeds": [{
-                "title": f"{config_data['emoji']} {config_data['title']}",
                 "description": config_data['description'],
                 "color": config_data['color'],
                 "fields": [
@@ -177,8 +177,8 @@ def test_webhook(url):
     if is_discord:
         # Discord Embed 형식 테스트 메시지
         test_payload = {
+            "content": "✅ 웹훅 연결 테스트",
             "embeds": [{
-                "title": "✅ 웹훅 연결 테스트",
                 "description": "**프로그램 모니터링 시스템**과 Discord가 성공적으로 연결되었습니다!",
                 "color": 5763719,  # 청록색
                 "fields": [
