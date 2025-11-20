@@ -16,6 +16,7 @@ from utils.process_manager import (
     restart_program,
     get_process_stats
 )
+from utils.logger import log_program_event, get_program_logs, calculate_uptime
 
 
 @programs_api.route("", methods=["GET", "POST"])
@@ -54,6 +55,10 @@ def start(program_id):
     program = programs_data["programs"][program_id]
     success, message = start_program(program["path"], program.get("args", ""))
     
+    # 로그 기록
+    if success:
+        log_program_event(program["name"], "start", f"사용자: {session.get('user')}")
+    
     return jsonify({"success": success, "message": message})
 
 
@@ -70,6 +75,10 @@ def stop(program_id):
     program = programs_data["programs"][program_id]
     success, message = stop_program(program["path"])
     
+    # 로그 기록
+    if success:
+        log_program_event(program["name"], "stop", f"사용자: {session.get('user')}")
+    
     return jsonify({"success": success, "message": message})
 
 
@@ -85,6 +94,10 @@ def restart(program_id):
     
     program = programs_data["programs"][program_id]
     success, message = restart_program(program["path"], program.get("args", ""))
+    
+    # 로그 기록
+    if success:
+        log_program_event(program["name"], "restart", f"사용자: {session.get('user')}")
     
     return jsonify({"success": success, "message": message})
 
@@ -107,7 +120,7 @@ def delete(program_id):
 
 @programs_api.route("/status", methods=["GET"])
 def status():
-    """모든 프로그램의 실시간 상태 조회 (CPU/메모리 사용량 포함)."""
+    """모든 프로그램의 실시간 상태 조회 (CPU/메모리 사용량 및 가동 시간 포함)."""
     if "user" not in session:
         return jsonify({"error": "Unauthorized"}), 401
     
@@ -118,6 +131,9 @@ def status():
         # 프로세스 상태 및 리소스 사용량 조회
         stats = get_process_stats(program["path"])
         
+        # 가동 시간 계산
+        uptime_info = calculate_uptime(program["name"])
+        
         status_list.append({
             "id": idx,
             "name": program["name"],
@@ -125,7 +141,8 @@ def status():
             "status": "실행 중" if stats['running'] else "중지됨",
             "cpu_percent": stats['cpu_percent'],
             "memory_mb": stats['memory_mb'],
-            "memory_percent": stats['memory_percent']
+            "memory_percent": stats['memory_percent'],
+            "uptime": uptime_info['uptime_formatted']
         })
     
     # 상태 데이터를 JSON 파일에도 저장
@@ -136,3 +153,25 @@ def status():
     save_json(STATUS_JSON, status_data)
     
     return jsonify(status_data)
+
+
+@programs_api.route("/<int:program_id>/logs", methods=["GET"])
+def logs(program_id):
+    """프로그램 로그 조회 API."""
+    if "user" not in session:
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    programs_data = load_json(PROGRAMS_JSON, {"programs": []})
+    if program_id >= len(programs_data["programs"]):
+        return jsonify({"error": "Program not found"}), 404
+    
+    program = programs_data["programs"][program_id]
+    limit = request.args.get('limit', 50, type=int)
+    
+    logs = get_program_logs(program["name"], limit=limit)
+    
+    return jsonify({
+        "program_name": program["name"],
+        "logs": logs,
+        "total": len(logs)
+    })
