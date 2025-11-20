@@ -10,6 +10,7 @@ from config import DATA_DIR
 
 # 웹훅 설정 파일 경로
 WEBHOOK_CONFIG_JSON = DATA_DIR / "webhook_config.json"
+WEBHOOK_THREADS_JSON = DATA_DIR / "webhook_threads.json"
 
 
 def get_webhook_config():
@@ -37,6 +38,32 @@ def save_webhook_config(config):
         config: 웹훅 설정 딕셔너리
     """
     save_json(WEBHOOK_CONFIG_JSON, config)
+
+
+def get_thread_id(program_name):
+    """프로그램의 Discord 스레드 ID 조회.
+    
+    Args:
+        program_name: 프로그램 이름
+        
+    Returns:
+        str or None: 스레드 ID (없으면 None)
+    """
+    threads = load_json(WEBHOOK_THREADS_JSON, {})
+    return threads.get(program_name)
+
+
+def save_thread_id(program_name, thread_id):
+    """프로그램의 Discord 스레드 ID 저장.
+    
+    Args:
+        program_name: 프로그램 이름
+        thread_id: Discord 스레드 ID
+    """
+    threads = load_json(WEBHOOK_THREADS_JSON, {})
+    threads[program_name] = thread_id
+    save_json(WEBHOOK_THREADS_JSON, threads)
+    print(f"💾 [Webhook] 스레드 ID 저장: {program_name} -> {thread_id}")
 
 
 def send_webhook_notification(program_name, event_type, details="", status="info"):
@@ -100,6 +127,9 @@ def send_webhook_notification(program_name, event_type, details="", status="info
     is_discord = "discord.com" in config["url"].lower()
     
     if is_discord:
+        # 기존 스레드 ID 확인
+        thread_id = get_thread_id(program_name)
+        
         # Discord Embed 형식
         payload = {
             "content": f"{config_data['emoji']} {config_data['title']}",
@@ -127,9 +157,16 @@ def send_webhook_notification(program_name, event_type, details="", status="info
                     "text": "프로그램 모니터링 시스템"
                 },
                 "timestamp": datetime.now().isoformat()
-            }],
-            "thread_name": f"🖥️ {program_name}"  # 포럼 채널 지원
+            }]
         }
+        
+        # 스레드 ID가 있으면 사용, 없으면 새로 생성
+        if thread_id:
+            payload["thread_id"] = thread_id
+            print(f"🔄 [Webhook] 기존 스레드 사용: {program_name} (ID: {thread_id})")
+        else:
+            payload["thread_name"] = f"🖥️ {program_name}"
+            print(f"🆕 [Webhook] 새 스레드 생성: {program_name}")
     else:
         # 일반 웹훅 형식 (기존 방식)
         payload = {
@@ -152,6 +189,17 @@ def send_webhook_notification(program_name, event_type, details="", status="info
         
         if response.status_code in [200, 201, 204]:
             print(f"✅ [Webhook] 알림 전송 성공: {program_name} - {event_type}")
+            
+            # Discord 응답에서 새로 생성된 스레드 ID 추출 및 저장
+            if is_discord and not thread_id:
+                try:
+                    response_data = response.json()
+                    if "id" in response_data:
+                        new_thread_id = response_data["id"]
+                        save_thread_id(program_name, new_thread_id)
+                except:
+                    pass  # 스레드 ID 저장 실패는 무시 (다음에 다시 시도)
+            
             return True, "Webhook sent successfully"
         else:
             error_msg = f"Webhook failed with status {response.status_code}"
