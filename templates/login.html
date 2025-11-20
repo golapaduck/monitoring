@@ -13,6 +13,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 15px;
         }
         .login-card {
             background: white;
@@ -29,6 +30,26 @@
         .login-header h2 {
             color: #667eea;
             font-weight: bold;
+        }
+        
+        /* 모바일 최적화 */
+        @media (max-width: 576px) {
+            .login-card {
+                padding: 25px 20px;
+                border-radius: 10px;
+            }
+            .login-header h2 {
+                font-size: 1.5rem;
+            }
+            .login-header p {
+                font-size: 0.9rem;
+            }
+            .form-label {
+                font-size: 0.9rem;
+            }
+            .btn {
+                padding: 0.6rem;
+            }
         }
     </style>
 </head>

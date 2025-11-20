@@ -13,7 +13,8 @@ from utils.process_manager import (
     get_process_status,
     start_program,
     stop_program,
-    restart_program
+    restart_program,
+    get_process_stats
 )
 
 
@@ -106,7 +107,7 @@ def delete(program_id):
 
 @programs_api.route("/status", methods=["GET"])
 def status():
-    """모든 프로그램의 실시간 상태 조회."""
+    """모든 프로그램의 실시간 상태 조회 (CPU/메모리 사용량 포함)."""
     if "user" not in session:
         return jsonify({"error": "Unauthorized"}), 401
     
@@ -114,12 +115,17 @@ def status():
     status_list = []
     
     for idx, program in enumerate(programs_data["programs"]):
-        is_running = get_process_status(program["path"])
+        # 프로세스 상태 및 리소스 사용량 조회
+        stats = get_process_stats(program["path"])
+        
         status_list.append({
             "id": idx,
             "name": program["name"],
-            "running": is_running,
-            "status": "실행 중" if is_running else "중지됨"
+            "running": stats['running'],
+            "status": "실행 중" if stats['running'] else "중지됨",
+            "cpu_percent": stats['cpu_percent'],
+            "memory_mb": stats['memory_mb'],
+            "memory_percent": stats['memory_percent']
         })
     
     # 상태 데이터를 JSON 파일에도 저장

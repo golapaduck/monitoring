@@ -15,6 +15,9 @@
         .navbar {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
+        .navbar-brand {
+            font-size: 1.1rem;
+        }
         .card {
             border: none;
             border-radius: 10px;
@@ -38,6 +41,126 @@
         .program-item:last-child {
             border-bottom: none;
         }
+        .program-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .program-info h6 {
+            margin-bottom: 0.25rem;
+            font-size: 1rem;
+        }
+        .program-info small {
+            display: block;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .program-controls {
+            display: flex;
+            gap: 0.25rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        /* 모바일 최적화 */
+        @media (max-width: 768px) {
+            .navbar-brand {
+                font-size: 0.95rem;
+            }
+            .navbar .badge {
+                font-size: 0.7rem;
+            }
+            .user-info {
+                font-size: 0.85rem;
+            }
+            .program-item {
+                padding: 12px;
+            }
+            .program-item > div {
+                flex-direction: column;
+                align-items: flex-start !important;
+                gap: 10px;
+            }
+            .program-info {
+                width: 100%;
+            }
+            .program-controls {
+                width: 100%;
+                justify-content: flex-start;
+            }
+            .status-badge {
+                font-size: 0.8rem;
+                padding: 4px 8px;
+            }
+            .btn-sm {
+                padding: 0.35rem 0.6rem;
+                font-size: 0.8rem;
+            }
+            .card-header {
+                font-size: 0.95rem;
+                padding: 0.75rem 1rem;
+            }
+            .stat-card h3 {
+                font-size: 1.75rem;
+            }
+            .stat-card p {
+                font-size: 0.85rem;
+            }
+        }
+        
+        /* 태블릿 최적화 */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .program-controls {
+                flex-wrap: nowrap;
+            }
+        }
+        
+        /* 작은 모바일 디바이스 */
+        @media (max-width: 576px) {
+            .container {
+                padding-left: 10px;
+                padding-right: 10px;
+            }
+            .navbar-brand i {
+                display: none;
+            }
+            .user-info i {
+                display: none;
+            }
+        }
+        
+        /* 새로고침 상태 표시 */
+        .refresh-indicator {
+            display: inline-block;
+            margin-left: 10px;
+            font-size: 0.85rem;
+            color: #6c757d;
+        }
+        .refresh-indicator.updating {
+            color: #667eea;
+        }
+        .refresh-indicator i {
+            animation: none;
+        }
+        .refresh-indicator.updating i {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .last-update {
+            font-size: 0.75rem;
+            color: #6c757d;
+        }
+        .resource-info {
+            font-size: 0.75rem;
+            color: #6c757d;
+            margin-top: 0.25rem;
+        }
+        .resource-info i {
+            margin-right: 3px;
+        }
     </style>
 </head>
 <body>
@@ -48,15 +171,17 @@
                 <i class="bi bi-display"></i> Monitoring System
             </span>
             <div class="d-flex align-items-center">
-                <span class="text-white me-3">
-                    <i class="bi bi-person-circle"></i> {{ username }} 
+                <span class="text-white me-2 me-md-3 user-info">
+                    <i class="bi bi-person-circle"></i> <span class="d-none d-sm-inline">{{ username }}</span>
                     {% if role == 'admin' %}
                     <span class="badge bg-warning text-dark">관리자</span>
                     {% else %}
                     <span class="badge bg-info">게스트</span>
                     {% endif %}
                 </span>
-                <a href="{{ url_for('web.logout') }}" class="btn btn-outline-light btn-sm">로그아웃</a>
+                <a href="{{ url_for('web.logout') }}" class="btn btn-outline-light btn-sm">
+                    <i class="bi bi-box-arrow-right"></i> <span class="d-none d-sm-inline">로그아웃</span>
+                </a>
             </div>
         </div>
     </nav>
@@ -66,22 +191,33 @@
         <div class="row">
             <div class="col-md-12">
                 <div class="card">
-                    <div class="card-header">
-                        <i class="bi bi-speedometer2"></i> 시스템 상태
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span>
+                            <i class="bi bi-speedometer2"></i> 시스템 상태
+                            <span class="refresh-indicator" id="refresh-indicator">
+                                <i class="bi bi-arrow-clockwise"></i>
+                            </span>
+                        </span>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="last-update" id="last-update">업데이트 중...</span>
+                            <button class="btn btn-light btn-sm" onclick="updateProgramsStatus()" title="수동 새로고침">
+                                <i class="bi bi-arrow-clockwise"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="card-body">
                         <div class="row text-center">
-                            <div class="col-md-4">
+                            <div class="col-4 col-md-4 stat-card">
                                 <h3 class="text-primary">{{ programs|length }}</h3>
-                                <p class="text-muted">등록된 프로그램</p>
+                                <p class="text-muted mb-0">등록된 프로그램</p>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-4 col-md-4 stat-card">
                                 <h3 class="text-success" id="running-count">0</h3>
-                                <p class="text-muted">실행 중</p>
+                                <p class="text-muted mb-0">실행 중</p>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-4 col-md-4 stat-card">
                                 <h3 class="text-danger" id="stopped-count">0</h3>
-                                <p class="text-muted">중지됨</p>
+                                <p class="text-muted mb-0">중지됨</p>
                             </div>
                         </div>
                     </div>
@@ -95,11 +231,13 @@
                 <div class="card">
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <span><i class="bi bi-list-ul"></i> 프로그램 목록</span>
-                        {% if role == 'admin' %}
-                        <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#addProgramModal">
-                            <i class="bi bi-plus-circle"></i> 프로그램 추가
-                        </button>
-                        {% endif %}
+                        <div class="d-flex gap-2">
+                            {% if role == 'admin' %}
+                            <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#addProgramModal">
+                                <i class="bi bi-plus-circle"></i> <span class="d-none d-md-inline">프로그램 추가</span>
+                            </button>
+                            {% endif %}
+                        </div>
                     </div>
                     <div class="card-body" id="programs-list">
                         {% if programs|length == 0 %}
@@ -114,25 +252,29 @@
                         {% for program in programs %}
                         <div class="program-item" id="program-{{ loop.index0 }}">
                             <div class="d-flex justify-content-between align-items-center">
-                                <div>
+                                <div class="program-info">
                                     <h6 class="mb-1">{{ program.name }}</h6>
-                                    <small class="text-muted">{{ program.path }}</small>
+                                    <small class="text-muted" title="{{ program.path }}">{{ program.path }}</small>
+                                    <div class="resource-info" id="resource-{{ loop.index0 }}">
+                                        <i class="bi bi-cpu"></i><span id="cpu-{{ loop.index0 }}">-</span>%
+                                        <span class="ms-2"><i class="bi bi-memory"></i><span id="mem-{{ loop.index0 }}">-</span> MB</span>
+                                    </div>
                                 </div>
-                                <div>
-                                    <span class="badge bg-secondary status-badge me-2" id="status-{{ loop.index0 }}">상태 확인 중...</span>
+                                <div class="program-controls">
+                                    <span class="badge bg-secondary status-badge" id="status-{{ loop.index0 }}">확인 중...</span>
                                     {% if role == 'admin' %}
-                                    <button class="btn btn-success btn-sm me-1" onclick="startProgram({{ loop.index0 }})" title="실행">
-                                        <i class="bi bi-play-fill"></i>
+                                    <button class="btn btn-success btn-sm" onclick="startProgram({{ loop.index0 }})" title="실행">
+                                        <i class="bi bi-play-fill"></i><span class="d-none d-lg-inline ms-1">실행</span>
                                     </button>
-                                    <button class="btn btn-danger btn-sm me-1" onclick="stopProgram({{ loop.index0 }})" title="종료">
-                                        <i class="bi bi-stop-fill"></i>
+                                    <button class="btn btn-danger btn-sm" onclick="stopProgram({{ loop.index0 }})" title="종료">
+                                        <i class="bi bi-stop-fill"></i><span class="d-none d-lg-inline ms-1">종료</span>
                                     </button>
-                                    <button class="btn btn-secondary btn-sm me-1" onclick="deleteProgram({{ loop.index0 }})" title="삭제">
-                                        <i class="bi bi-trash-fill"></i>
+                                    <button class="btn btn-secondary btn-sm" onclick="deleteProgram({{ loop.index0 }})" title="삭제">
+                                        <i class="bi bi-trash-fill"></i><span class="d-none d-lg-inline ms-1">삭제</span>
                                     </button>
                                     {% endif %}
-                                    <button class="btn btn-warning btn-sm" onclick="restartProgram({{ loop.index0 }})" title="재부팅">
-                                        <i class="bi bi-arrow-clockwise"></i>
+                                    <button class="btn btn-warning btn-sm" onclick="restartProgram({{ loop.index0 }})" title="재시작">
+                                        <i class="bi bi-arrow-clockwise"></i><span class="d-none d-lg-inline ms-1">재시작</span>
                                     </button>
                                 </div>
                             </div>
@@ -189,6 +331,11 @@
             const name = document.getElementById('programName').value;
             const path = document.getElementById('programPath').value;
             const args = document.getElementById('programArgs').value;
+
+            if (!name || !path) {
+                alert('프로그램 이름과 경로를 입력해주세요.');
+                return;
+            }
 
             fetch('/api/programs', {
                 method: 'POST',
@@ -285,6 +432,12 @@
 
         // 프로그램 상태 업데이트
         function updateProgramsStatus() {
+            const indicator = document.getElementById('refresh-indicator');
+            const lastUpdate = document.getElementById('last-update');
+            
+            // 업데이트 시작 표시
+            indicator.classList.add('updating');
+            
             fetch('/api/programs/status')
                 .then(response => response.json())
                 .then(data => {
@@ -293,15 +446,26 @@
 
                     data.programs_status.forEach(program => {
                         const statusBadge = document.getElementById(`status-${program.id}`);
+                        const cpuElement = document.getElementById(`cpu-${program.id}`);
+                        const memElement = document.getElementById(`mem-${program.id}`);
+                        
                         if (statusBadge) {
                             if (program.running) {
-                                statusBadge.className = 'badge bg-success status-badge me-2';
+                                statusBadge.className = 'badge bg-success status-badge';
                                 statusBadge.textContent = '실행 중';
                                 runningCount++;
+                                
+                                // CPU/메모리 사용량 표시
+                                if (cpuElement) cpuElement.textContent = program.cpu_percent || '0';
+                                if (memElement) memElement.textContent = program.memory_mb || '0';
                             } else {
-                                statusBadge.className = 'badge bg-danger status-badge me-2';
+                                statusBadge.className = 'badge bg-danger status-badge';
                                 statusBadge.textContent = '중지됨';
                                 stoppedCount++;
+                                
+                                // 중지된 프로그램은 리소스 사용량 0으로 표시
+                                if (cpuElement) cpuElement.textContent = '0';
+                                if (memElement) memElement.textContent = '0';
                             }
                         }
                     });
@@ -309,9 +473,19 @@
                     // 요약 카운트 업데이트
                     document.getElementById('running-count').textContent = runningCount;
                     document.getElementById('stopped-count').textContent = stoppedCount;
+                    
+                    // 마지막 업데이트 시간 표시
+                    const now = new Date();
+                    const timeStr = now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    lastUpdate.textContent = `마지막 업데이트: ${timeStr}`;
+                    
+                    // 업데이트 완료 표시
+                    indicator.classList.remove('updating');
                 })
                 .catch(error => {
                     console.error('Status update failed:', error);
+                    lastUpdate.textContent = '업데이트 실패';
+                    indicator.classList.remove('updating');
                 });
         }
 
