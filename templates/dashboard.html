@@ -360,6 +360,12 @@
                             <label for="programArgs" class="form-label">실행 인자 (선택)</label>
                             <input type="text" class="form-control" id="programArgs">
                         </div>
+                        <div class="mb-3">
+                            <label for="programWebhook" class="form-label">웹훅 URL (선택)</label>
+                            <input type="url" class="form-control" id="programWebhook" 
+                                   placeholder="이 프로그램 전용 웹훅 URL (비워두면 전역 설정 사용)">
+                            <small class="text-muted">프로그램별로 다른 Discord 채널에 알림을 보낼 수 있습니다.</small>
+                        </div>
                     </form>
                 </div>
                 <div class="modal-footer">
@@ -470,10 +476,22 @@
             const name = document.getElementById('programName').value;
             const path = document.getElementById('programPath').value;
             const args = document.getElementById('programArgs').value;
+            const webhookUrl = document.getElementById('programWebhook').value;
 
             if (!name || !path) {
                 alert('프로그램 이름과 경로를 입력해주세요.');
                 return;
+            }
+
+            const programData = {
+                name: name,
+                path: path,
+                args: args
+            };
+            
+            // 웹훅 URL이 입력되었으면 추가
+            if (webhookUrl) {
+                programData.webhook_url = webhookUrl;
             }
 
             fetch('/api/programs', {
@@ -481,11 +499,7 @@
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    name: name,
-                    path: path,
-                    args: args
-                })
+                body: JSON.stringify(programData)
             })
             .then(response => response.json())
             .then(data => {

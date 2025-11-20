@@ -66,7 +66,7 @@ def save_thread_id(program_name, thread_id):
     print(f"💾 [Webhook] 스레드 ID 저장: {program_name} -> {thread_id}")
 
 
-def send_webhook_notification(program_name, event_type, details="", status="info"):
+def send_webhook_notification(program_name, event_type, details="", status="info", webhook_url=None):
     """웹훅 알림 전송 (Discord Embed 형식 지원).
     
     Args:
@@ -74,14 +74,18 @@ def send_webhook_notification(program_name, event_type, details="", status="info
         event_type: 이벤트 타입 ('start', 'stop', 'restart', 'crash')
         details: 추가 상세 정보
         status: 알림 상태 ('info', 'success', 'warning', 'error')
+        webhook_url: 프로그램별 웹훅 URL (없으면 전역 설정 사용)
         
     Returns:
         tuple: (성공 여부, 메시지)
     """
     config = get_webhook_config()
     
+    # 프로그램별 웹훅 URL이 있으면 우선 사용, 없으면 전역 설정 사용
+    target_url = webhook_url if webhook_url else config.get("url")
+    
     # 웹훅이 비활성화되어 있거나 URL이 없으면 스킵
-    if not config.get("enabled") or not config.get("url"):
+    if not config.get("enabled") or not target_url:
         return True, "Webhook disabled"
     
     # 이벤트 타입이 설정된 이벤트 목록에 없으면 스킵
@@ -124,7 +128,7 @@ def send_webhook_notification(program_name, event_type, details="", status="info
     })
     
     # Discord 웹훅인지 확인 (URL에 discord.com 포함 여부)
-    is_discord = "discord.com" in config["url"].lower()
+    is_discord = "discord.com" in target_url.lower()
     
     if is_discord:
         # 기존 스레드 ID 확인
@@ -181,7 +185,7 @@ def send_webhook_notification(program_name, event_type, details="", status="info
     try:
         # 웹훅 URL로 POST 요청
         response = requests.post(
-            config["url"],
+            target_url,
             json=payload,
             headers={"Content-Type": "application/json"},
             timeout=5
@@ -204,19 +208,19 @@ def send_webhook_notification(program_name, event_type, details="", status="info
         else:
             error_msg = f"Webhook failed with status {response.status_code}"
             print(f"❌ [Webhook Error] {error_msg}")
-            print(f"   - URL: {config['url'][:50]}...")
+            print(f"   - URL: {target_url[:50]}...")
             print(f"   - Response: {response.text[:200]}")
             return False, error_msg
             
     except requests.exceptions.Timeout:
         error_msg = "Webhook request timeout"
         print(f"⏱️ [Webhook Timeout] {error_msg}")
-        print(f"   - URL: {config['url'][:50]}...")
+        print(f"   - URL: {target_url[:50]}...")
         return False, error_msg
     except requests.exceptions.RequestException as e:
         error_msg = f"Webhook request failed: {str(e)}"
         print(f"🔌 [Webhook Connection Error] {error_msg}")
-        print(f"   - URL: {config['url'][:50]}...")
+        print(f"   - URL: {target_url[:50]}...")
         return False, error_msg
     except Exception as e:
         error_msg = f"Unexpected error: {str(e)}"

@@ -59,7 +59,8 @@ def start(program_id):
     # 로그 기록 및 웹훅 알림
     if success:
         log_program_event(program["name"], "start", f"사용자: {session.get('user')}")
-        send_webhook_notification(program["name"], "start", f"사용자: {session.get('user')}", "success")
+        webhook_url = program.get("webhook_url")  # 프로그램별 웹훅 URL
+        send_webhook_notification(program["name"], "start", f"사용자: {session.get('user')}", "success", webhook_url)
     
     return jsonify({"success": success, "message": message})
 
@@ -80,7 +81,8 @@ def stop(program_id):
     # 로그 기록 및 웹훅 알림
     if success:
         log_program_event(program["name"], "stop", f"사용자: {session.get('user')}")
-        send_webhook_notification(program["name"], "stop", f"사용자: {session.get('user')}", "warning")
+        webhook_url = program.get("webhook_url")  # 프로그램별 웹훅 URL
+        send_webhook_notification(program["name"], "stop", f"사용자: {session.get('user')}", "warning", webhook_url)
     
     return jsonify({"success": success, "message": message})
 
@@ -101,7 +103,8 @@ def restart(program_id):
     # 로그 기록 및 웹훅 알림
     if success:
         log_program_event(program["name"], "restart", f"사용자: {session.get('user')}")
-        send_webhook_notification(program["name"], "restart", f"사용자: {session.get('user')}", "info")
+        webhook_url = program.get("webhook_url")  # 프로그램별 웹훅 URL
+        send_webhook_notification(program["name"], "restart", f"사용자: {session.get('user')}", "info", webhook_url)
     
     return jsonify({"success": success, "message": message})
 
