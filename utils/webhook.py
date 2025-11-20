@@ -300,10 +300,18 @@ def send_webhook_notification(program_name, event_type, details="", status="info
     if not webhook_url:
         return True, "No program-specific webhook configured"
     
+    # 에러 처리를 위한 래퍼 함수
+    def _send_with_error_handling():
+        try:
+            _send_webhook_sync(program_name, event_type, details, status, webhook_url)
+        except Exception as e:
+            print(f"💥 [Webhook Thread Error] {program_name} - {event_type}: {str(e)}")
+            import traceback
+            traceback.print_exc()
+    
     # 백그라운드 스레드에서 웹훅 전송
     thread = threading.Thread(
-        target=_send_webhook_sync,
-        args=(program_name, event_type, details, status, webhook_url),
+        target=_send_with_error_handling,
         daemon=True,
         name=f"Webhook-{program_name}-{event_type}"
     )
