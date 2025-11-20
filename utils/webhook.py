@@ -2,6 +2,7 @@
 
 import requests
 import json
+import threading
 from datetime import datetime
 from pathlib import Path
 from utils.data_manager import load_json, save_json
@@ -66,15 +67,15 @@ def save_thread_id(program_name, thread_id):
     print(f"💾 [Webhook] 스레드 ID 저장: {program_name} -> {thread_id}")
 
 
-def send_webhook_notification(program_name, event_type, details="", status="info", webhook_url=None):
-    """웹훅 알림 전송 (Discord Embed 형식 지원).
+def _send_webhook_sync(program_name, event_type, details="", status="info", webhook_url=None):
+    """웹훅 알림 전송 (동기 버전 - 내부 사용).
     
     Args:
         program_name: 프로그램 이름
         event_type: 이벤트 타입 ('start', 'stop', 'restart', 'crash')
         details: 추가 상세 정보
         status: 알림 상태 ('info', 'success', 'warning', 'error')
-        webhook_url: 프로그램별 웹훅 URL (없으면 전역 설정 사용)
+        webhook_url: 프로그램별 웹훅 URL
         
     Returns:
         tuple: (성공 여부, 메시지)
@@ -254,6 +255,38 @@ def send_webhook_notification(program_name, event_type, details="", status="info
         print(f"   - Program: {program_name}")
         print(f"   - Event: {event_type}")
         return False, error_msg
+
+
+def send_webhook_notification(program_name, event_type, details="", status="info", webhook_url=None):
+    """웹훅 알림 전송 (비동기 처리).
+    
+    백그라운드 스레드에서 웹훅을 전송하여 메인 프로세스를 블로킹하지 않습니다.
+    
+    Args:
+        program_name: 프로그램 이름
+        event_type: 이벤트 타입 ('start', 'stop', 'restart', 'crash')
+        details: 추가 상세 정보
+        status: 알림 상태 ('info', 'success', 'warning', 'error')
+        webhook_url: 프로그램별 웹훅 URL
+        
+    Returns:
+        tuple: (True, "Webhook queued") - 즉시 반환
+    """
+    # 웹훅이 설정되지 않았으면 스킵
+    if not webhook_url:
+        return True, "No program-specific webhook configured"
+    
+    # 백그라운드 스레드에서 웹훅 전송
+    thread = threading.Thread(
+        target=_send_webhook_sync,
+        args=(program_name, event_type, details, status, webhook_url),
+        daemon=True,
+        name=f"Webhook-{program_name}-{event_type}"
+    )
+    thread.start()
+    
+    print(f"🚀 [Webhook] 비동기 전송 시작: {program_name} - {event_type}")
+    return True, "Webhook queued for async delivery"
 
 
 def test_webhook(url):
