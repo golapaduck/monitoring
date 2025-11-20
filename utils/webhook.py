@@ -167,13 +167,9 @@ def send_webhook_notification(program_name, event_type, details="", status="info
             }]
         }
         
-        # 스레드 ID가 있으면 사용, 없으면 새로 생성
-        if thread_id:
-            payload["thread_id"] = thread_id
-            print(f"🔄 [Webhook] 기존 스레드 사용: {program_name} (ID: {thread_id})")
-        else:
+        # 스레드 이름 설정 (새 스레드 생성 시에만)
+        if not thread_id:
             payload["thread_name"] = f"🖥️ {program_name}"
-            print(f"🆕 [Webhook] 새 스레드 생성: {program_name}")
     else:
         # 일반 웹훅 형식 (기존 방식)
         payload = {
@@ -186,14 +182,24 @@ def send_webhook_notification(program_name, event_type, details="", status="info
         }
     
     try:
+        # Discord 포럼 채널의 경우 thread_id를 URL 쿼리 파라미터로 전달
+        request_url = target_url
+        if is_discord and thread_id:
+            # 기존 스레드에 메시지 추가 (쿼리 파라미터 사용)
+            request_url = f"{target_url}?thread_id={thread_id}"
+            # payload에서 thread_id 제거 (URL에 포함되므로)
+            payload.pop('thread_id', None)
+            print(f"🔄 [Webhook] 기존 스레드에 메시지 추가: {program_name} (ID: {thread_id})")
+        elif is_discord and 'thread_name' in payload:
+            print(f"🆕 [Webhook] 새 스레드 생성: {payload['thread_name']}")
+        
         # 디버깅: 전송하는 페이로드 출력
-        print(f"📤 [Webhook] 전송 페이로드:")
-        print(f"   - thread_id: {payload.get('thread_id', 'None')}")
-        print(f"   - thread_name: {payload.get('thread_name', 'None')}")
+        print(f"📤 [Webhook] 요청 URL: {request_url[:80]}...")
+        print(f"📤 [Webhook] 페이로드 키: {list(payload.keys())}")
         
         # 웹훅 URL로 POST 요청
         response = requests.post(
-            target_url,
+            request_url,
             json=payload,
             headers={"Content-Type": "application/json"},
             timeout=5
