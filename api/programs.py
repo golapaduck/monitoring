@@ -109,6 +109,35 @@ def restart(program_id):
     return jsonify({"success": success, "message": message})
 
 
+@programs_api.route("/<int:program_id>", methods=["PUT"])
+def update(program_id):
+    """프로그램 정보 수정 API (관리자만)."""
+    if "user" not in session or session.get("role") != "admin":
+        return jsonify({"error": "Forbidden"}), 403
+    
+    programs_data = load_json(PROGRAMS_JSON, {"programs": []})
+    if program_id >= len(programs_data["programs"]):
+        return jsonify({"error": "Program not found"}), 404
+    
+    data = request.get_json()
+    
+    # 필수 필드 검증
+    if not data.get("name") or not data.get("path"):
+        return jsonify({"error": "Name and path are required"}), 400
+    
+    # 프로그램 정보 업데이트
+    programs_data["programs"][program_id] = {
+        "name": data["name"],
+        "path": data["path"],
+        "args": data.get("args", ""),
+        "webhook_url": data.get("webhook_url", "")
+    }
+    
+    save_json(PROGRAMS_JSON, programs_data)
+    
+    return jsonify({"success": True, "message": "프로그램 정보가 수정되었습니다."})
+
+
 @programs_api.route("/<int:program_id>/delete", methods=["DELETE"])
 def delete(program_id):
     """프로그램 삭제 API (관리자만)."""

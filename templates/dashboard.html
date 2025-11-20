@@ -315,6 +315,9 @@
                                     <button class="btn btn-danger btn-sm" onclick="stopProgram({{ loop.index0 }})" aria-label="Stop">
                                         <i class="bi bi-stop-fill"></i><span class="d-none d-lg-inline ms-1">종료</span>
                                     </button>
+                                    <button class="btn btn-primary btn-sm" onclick="editProgram({{ loop.index0 }})" aria-label="Edit">
+                                        <i class="bi bi-pencil"></i><span class="d-none d-lg-inline ms-1">편집</span>
+                                    </button>
                                     <button class="btn btn-secondary btn-sm" onclick="deleteProgram({{ loop.index0 }})" aria-label="Delete">
                                         <i class="bi bi-trash-fill"></i><span class="d-none d-lg-inline ms-1">삭제</span>
                                     </button>
@@ -371,6 +374,48 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
                     <button type="button" class="btn btn-primary" onclick="addProgram()">추가</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 프로그램 편집 모달 (관리자만) -->
+    {% if role == 'admin' %}
+    <div class="modal fade" id="editProgramModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">프로그램 편집</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editProgramForm">
+                        <input type="hidden" id="editProgramId">
+                        <div class="mb-3">
+                            <label for="editProgramName" class="form-label">프로그램 이름</label>
+                            <input type="text" class="form-control" id="editProgramName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editProgramPath" class="form-label">실행 파일 경로</label>
+                            <input type="text" class="form-control" id="editProgramPath" 
+                                   placeholder="예: C:\Program Files\MyApp\app.exe" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editProgramArgs" class="form-label">실행 인자 (선택)</label>
+                            <input type="text" class="form-control" id="editProgramArgs">
+                        </div>
+                        <div class="mb-3">
+                            <label for="editProgramWebhook" class="form-label">웹훅 URL (선택)</label>
+                            <input type="url" class="form-control" id="editProgramWebhook" 
+                                   placeholder="이 프로그램 전용 웹훅 URL (비워두면 알림 없음)">
+                            <small class="text-muted">프로그램별로 다른 Discord 채널에 알림을 보낼 수 있습니다.</small>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
+                    <button type="button" class="btn btn-primary" onclick="updateProgram()">저장</button>
                 </div>
             </div>
         </div>
@@ -561,6 +606,75 @@
                     alert('오류 발생: ' + error);
                 });
             }
+        }
+
+        // 프로그램 편집 모달 열기
+        function editProgram(programId) {
+            // 프로그램 정보 가져오기
+            fetch('/api/programs')
+                .then(response => response.json())
+                .then(data => {
+                    const program = data.programs[programId];
+                    if (program) {
+                        document.getElementById('editProgramId').value = programId;
+                        document.getElementById('editProgramName').value = program.name;
+                        document.getElementById('editProgramPath').value = program.path;
+                        document.getElementById('editProgramArgs').value = program.args || '';
+                        document.getElementById('editProgramWebhook').value = program.webhook_url || '';
+                        
+                        const modal = new bootstrap.Modal(document.getElementById('editProgramModal'));
+                        modal.show();
+                    }
+                })
+                .catch(error => {
+                    alert('프로그램 정보를 불러오는데 실패했습니다: ' + error);
+                });
+        }
+
+        // 프로그램 정보 업데이트
+        function updateProgram() {
+            const programId = document.getElementById('editProgramId').value;
+            const name = document.getElementById('editProgramName').value;
+            const path = document.getElementById('editProgramPath').value;
+            const args = document.getElementById('editProgramArgs').value;
+            const webhookUrl = document.getElementById('editProgramWebhook').value;
+
+            if (!name || !path) {
+                alert('프로그램 이름과 경로를 입력해주세요.');
+                return;
+            }
+
+            const programData = {
+                name: name,
+                path: path,
+                args: args
+            };
+            
+            // 웹훅 URL이 입력되었으면 추가
+            if (webhookUrl) {
+                programData.webhook_url = webhookUrl;
+            }
+
+            fetch(`/api/programs/${programId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(programData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('프로그램 정보가 수정되었습니다.');
+                    bootstrap.Modal.getInstance(document.getElementById('editProgramModal')).hide();
+                    location.reload();
+                } else {
+                    alert('수정 실패: ' + (data.error || '알 수 없는 오류'));
+                }
+            })
+            .catch(error => {
+                alert('오류 발생: ' + error);
+            });
         }
 
         // 프로그램 삭제
