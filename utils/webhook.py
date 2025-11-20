@@ -127,7 +127,8 @@ def send_webhook_notification(program_name, event_type, details="", status="info
                     "text": "프로그램 모니터링 시스템"
                 },
                 "timestamp": datetime.now().isoformat()
-            }]
+            }],
+            "thread_name": f"🖥️ {program_name}"  # 포럼 채널 지원
         }
     else:
         # 일반 웹훅 형식 (기존 방식)
@@ -217,7 +218,8 @@ def test_webhook(url):
                     "text": "프로그램 모니터링 시스템"
                 },
                 "timestamp": datetime.now().isoformat()
-            }]
+            }],
+            "thread_name": "🧪 웹훅 테스트"  # 포럼 채널 지원
         }
     else:
         # 일반 웹훅 형식
