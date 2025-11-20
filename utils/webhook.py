@@ -186,6 +186,11 @@ def send_webhook_notification(program_name, event_type, details="", status="info
         }
     
     try:
+        # 디버깅: 전송하는 페이로드 출력
+        print(f"📤 [Webhook] 전송 페이로드:")
+        print(f"   - thread_id: {payload.get('thread_id', 'None')}")
+        print(f"   - thread_name: {payload.get('thread_name', 'None')}")
+        
         # 웹훅 URL로 POST 요청
         response = requests.post(
             target_url,
@@ -200,12 +205,24 @@ def send_webhook_notification(program_name, event_type, details="", status="info
             # Discord 응답에서 새로 생성된 스레드 ID 추출 및 저장
             if is_discord and not thread_id:
                 try:
-                    response_data = response.json()
-                    if "id" in response_data:
-                        new_thread_id = response_data["id"]
-                        save_thread_id(program_name, new_thread_id)
-                except:
-                    pass  # 스레드 ID 저장 실패는 무시 (다음에 다시 시도)
+                    # 204 No Content는 응답 본문이 없음
+                    if response.status_code != 204 and response.text:
+                        response_data = response.json()
+                        print(f"📥 [Webhook] Discord 응답: {response_data}")
+                        
+                        # 포럼 채널의 경우 thread 객체 안에 id가 있음
+                        if "thread" in response_data and "id" in response_data["thread"]:
+                            new_thread_id = response_data["thread"]["id"]
+                            save_thread_id(program_name, new_thread_id)
+                        elif "id" in response_data:
+                            new_thread_id = response_data["id"]
+                            save_thread_id(program_name, new_thread_id)
+                        else:
+                            print(f"⚠️ [Webhook] 응답에서 스레드 ID를 찾을 수 없음")
+                    else:
+                        print(f"ℹ️ [Webhook] 204 No Content - 스레드 ID 없음")
+                except Exception as e:
+                    print(f"⚠️ [Webhook] 스레드 ID 추출 실패: {str(e)}")
             
             return True, "Webhook sent successfully"
         else:
