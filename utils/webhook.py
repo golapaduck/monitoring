@@ -168,9 +168,9 @@ def _send_webhook_sync(program_name, event_type, details="", status="info", webh
             }]
         }
         
-        # 스레드 이름 설정 (새 스레드 생성 시에만)
-        if not thread_id:
-            payload["thread_name"] = f"🖥️ {program_name}"
+        # 포럼 채널인 경우에만 스레드 이름 설정
+        # 일반 채널에서는 thread_name을 사용하지 않음
+        # (포럼 채널 여부는 첫 응답으로 판단)
     else:
         # 일반 웹훅 형식 (기존 방식)
         payload = {
@@ -191,8 +191,8 @@ def _send_webhook_sync(program_name, event_type, details="", status="info", webh
             # payload에서 thread_id 제거 (URL에 포함되므로)
             payload.pop('thread_id', None)
             print(f"🔄 [Webhook] 기존 스레드에 메시지 추가: {program_name} (ID: {thread_id})")
-        elif is_discord and 'thread_name' in payload:
-            print(f"🆕 [Webhook] 새 스레드 생성: {payload['thread_name']}")
+        elif is_discord:
+            print(f"📨 [Webhook] Discord 메시지 전송: {program_name} - {event_type}")
         
         # 디버깅: 전송하는 페이로드 출력
         print(f"📤 [Webhook] 요청 URL: {request_url[:80]}...")
@@ -243,7 +243,8 @@ def _send_webhook_sync(program_name, event_type, details="", status="info", webh
                             print(f"⚠️ [Webhook] 응답에서 스레드 ID를 찾을 수 없음")
                             print(f"   응답 키: {list(response_data.keys())}")
                     else:
-                        print(f"ℹ️ [Webhook] 204 No Content - 스레드 ID 없음")
+                        print(f"ℹ️ [Webhook] 204 No Content - 일반 텍스트 채널")
+                        print(f"   💡 포럼 채널을 사용하면 스레드별로 메시지를 그룹화할 수 있습니다.")
                 except Exception as e:
                     print(f"⚠️ [Webhook] 스레드 ID 추출 실패: {str(e)}")
                     import traceback
