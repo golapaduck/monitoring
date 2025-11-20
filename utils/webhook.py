@@ -118,9 +118,9 @@ def _send_webhook_sync(program_name, event_type, details="", status="info", webh
         },
         "crash": {
             "color": 10038562,  # 진한 빨강
-            "emoji": "❌",
-            "title": "프로그램 크래시",
-            "description": f"**{program_name}** 프로그램에 오류가 발생했습니다."
+            "emoji": "💥",
+            "title": "예기치 않은 종료",
+            "description": f"**{program_name}** 프로그램이 예기치 않게 종료되었습니다."
         }
     }
     
