@@ -81,11 +81,14 @@ def send_webhook_notification(program_name, event_type, details="", status="info
     """
     config = get_webhook_config()
     
-    # 프로그램별 웹훅 URL이 있으면 우선 사용, 없으면 전역 설정 사용
-    target_url = webhook_url if webhook_url else config.get("url")
+    # 프로그램별 웹훅 URL이 없으면 스킵 (전역 설정 사용 안 함)
+    if not webhook_url:
+        return True, "No program-specific webhook configured"
     
-    # 웹훅이 비활성화되어 있거나 URL이 없으면 스킵
-    if not config.get("enabled") or not target_url:
+    target_url = webhook_url
+    
+    # 웹훅이 비활성화되어 있으면 스킵
+    if not config.get("enabled"):
         return True, "Webhook disabled"
     
     # 이벤트 타입이 설정된 이벤트 목록에 없으면 스킵
