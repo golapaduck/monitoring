@@ -35,9 +35,15 @@ class ProcessMonitor:
     
     def stop(self):
         """모니터링 중지."""
+        if not self.running:
+            return
+            
         self.running = False
-        if self.thread:
-            self.thread.join(timeout=5)
+        if self.thread and self.thread.is_alive():
+            try:
+                self.thread.join(timeout=2)
+            except Exception:
+                pass  # 종료 시 발생하는 예외 무시
         print("🛑 [Process Monitor] 프로세스 모니터링 중지")
     
     def _monitor_loop(self):
