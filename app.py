@@ -12,6 +12,7 @@ from config import Config, USERS_JSON, PROGRAMS_JSON, STATUS_JSON
 from utils.data_manager import init_default_data
 from utils.process_monitor import start_process_monitor, stop_process_monitor
 import atexit
+import os
 
 # Flask 앱 생성 및 설정
 app = Flask(__name__)
@@ -20,11 +21,13 @@ app.config.from_object(Config)
 # 앱 시작 시 기본 데이터 초기화
 init_default_data(USERS_JSON, PROGRAMS_JSON, STATUS_JSON)
 
-# 프로세스 모니터 시작 (10초 간격)
-start_process_monitor(check_interval=10)
-
-# 앱 종료 시 모니터 중지
-atexit.register(stop_process_monitor)
+# Flask reloader의 메인 프로세스에서만 프로세스 모니터 시작
+# (werkzeug의 reloader는 자식 프로세스를 생성하므로 중복 실행 방지)
+if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
+    # 프로세스 모니터 시작 (10초 간격)
+    start_process_monitor(check_interval=10)
+    # 앱 종료 시 모니터 중지
+    atexit.register(stop_process_monitor)
 
 # === Blueprint 등록 ===
 
