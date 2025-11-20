@@ -215,21 +215,39 @@ def _send_webhook_sync(program_name, event_type, details="", status="info", webh
                     # 204 No Content는 응답 본문이 없음
                     if response.status_code != 204 and response.text:
                         response_data = response.json()
-                        print(f"📥 [Webhook] Discord 응답: {response_data}")
+                        print(f"📥 [Webhook] Discord 응답 전체:")
+                        print(f"   {json.dumps(response_data, indent=2)[:500]}")
                         
-                        # 포럼 채널의 경우 thread 객체 안에 id가 있음
-                        if "thread" in response_data and "id" in response_data["thread"]:
-                            new_thread_id = response_data["thread"]["id"]
-                            save_thread_id(program_name, new_thread_id)
-                        elif "id" in response_data:
-                            new_thread_id = response_data["id"]
-                            save_thread_id(program_name, new_thread_id)
+                        extracted_thread_id = None
+                        
+                        # 여러 가능한 위치에서 스레드 ID 찾기
+                        # 1. thread.id (포럼 채널 응답)
+                        if "thread" in response_data:
+                            if isinstance(response_data["thread"], dict) and "id" in response_data["thread"]:
+                                extracted_thread_id = response_data["thread"]["id"]
+                                print(f"✓ [Webhook] thread.id에서 발견: {extracted_thread_id}")
+                        
+                        # 2. channel_id (일부 응답)
+                        if not extracted_thread_id and "channel_id" in response_data:
+                            extracted_thread_id = response_data["channel_id"]
+                            print(f"✓ [Webhook] channel_id에서 발견: {extracted_thread_id}")
+                        
+                        # 3. id (직접 응답)
+                        if not extracted_thread_id and "id" in response_data:
+                            extracted_thread_id = response_data["id"]
+                            print(f"✓ [Webhook] id에서 발견: {extracted_thread_id}")
+                        
+                        if extracted_thread_id:
+                            save_thread_id(program_name, extracted_thread_id)
                         else:
                             print(f"⚠️ [Webhook] 응답에서 스레드 ID를 찾을 수 없음")
+                            print(f"   응답 키: {list(response_data.keys())}")
                     else:
                         print(f"ℹ️ [Webhook] 204 No Content - 스레드 ID 없음")
                 except Exception as e:
                     print(f"⚠️ [Webhook] 스레드 ID 추출 실패: {str(e)}")
+                    import traceback
+                    traceback.print_exc()
             
             return True, "Webhook sent successfully"
         else:
