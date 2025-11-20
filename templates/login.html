@@ -7,6 +7,20 @@
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
+        :root {
+            --card-bg: #ffffff;
+            --text-color: #212529;
+            --text-muted: #6c757d;
+            --shadow: rgba(0,0,0,0.2);
+        }
+        
+        [data-theme="dark"] {
+            --card-bg: #2d2d2d;
+            --text-color: #e9ecef;
+            --text-muted: #adb5bd;
+            --shadow: rgba(0,0,0,0.5);
+        }
+        
         body {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
@@ -16,12 +30,14 @@
             padding: 15px;
         }
         .login-card {
-            background: white;
+            background: var(--card-bg);
+            color: var(--text-color);
             border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            box-shadow: 0 10px 30px var(--shadow);
             padding: 40px;
             max-width: 400px;
             width: 100%;
+            transition: background-color 0.3s, color 0.3s;
         }
         .login-header {
             text-align: center;
@@ -30,6 +46,23 @@
         .login-header h2 {
             color: #667eea;
             font-weight: bold;
+        }
+        .text-muted {
+            color: var(--text-muted) !important;
+        }
+        .form-control {
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            border-color: var(--text-muted);
+        }
+        [data-theme="dark"] .form-control {
+            background-color: #1a1a1a;
+            color: var(--text-color);
+        }
+        .theme-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
         }
         
         /* 모바일 최적화 */
@@ -52,8 +85,14 @@
             }
         }
     </style>
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
 </head>
 <body>
+    <button class="btn btn-outline-light theme-toggle" onclick="toggleDarkMode()" title="다크 모드 토글">
+        <i class="bi bi-moon-stars" id="theme-icon"></i>
+    </button>
+    
     <div class="login-card">
         <div class="login-header">
             <h2>🖥️ Monitoring System</h2>
@@ -87,5 +126,33 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // 다크 모드 토글
+        function toggleDarkMode() {
+            const html = document.documentElement;
+            const themeIcon = document.getElementById('theme-icon');
+            const currentTheme = html.getAttribute('data-theme');
+            
+            if (currentTheme === 'dark') {
+                html.removeAttribute('data-theme');
+                localStorage.setItem('theme', 'light');
+                themeIcon.className = 'bi bi-moon-stars';
+            } else {
+                html.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+                themeIcon.className = 'bi bi-sun-fill';
+            }
+        }
+        
+        // 페이지 로드 시 테마 적용
+        const savedTheme = localStorage.getItem('theme');
+        const themeIcon = document.getElementById('theme-icon');
+        
+        if (savedTheme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            if (themeIcon) themeIcon.className = 'bi bi-sun-fill';
+        }
+    </script>
 </body>
 </html>

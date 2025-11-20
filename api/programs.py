@@ -17,6 +17,7 @@ from utils.process_manager import (
     get_process_stats
 )
 from utils.logger import log_program_event, get_program_logs, calculate_uptime
+from utils.webhook import send_webhook_notification
 
 
 @programs_api.route("", methods=["GET", "POST"])
@@ -55,9 +56,10 @@ def start(program_id):
     program = programs_data["programs"][program_id]
     success, message = start_program(program["path"], program.get("args", ""))
     
-    # 로그 기록
+    # 로그 기록 및 웹훅 알림
     if success:
         log_program_event(program["name"], "start", f"사용자: {session.get('user')}")
+        send_webhook_notification(program["name"], "start", f"사용자: {session.get('user')}", "success")
     
     return jsonify({"success": success, "message": message})
 
@@ -75,9 +77,10 @@ def stop(program_id):
     program = programs_data["programs"][program_id]
     success, message = stop_program(program["path"])
     
-    # 로그 기록
+    # 로그 기록 및 웹훅 알림
     if success:
         log_program_event(program["name"], "stop", f"사용자: {session.get('user')}")
+        send_webhook_notification(program["name"], "stop", f"사용자: {session.get('user')}", "warning")
     
     return jsonify({"success": success, "message": message})
 
@@ -95,9 +98,10 @@ def restart(program_id):
     program = programs_data["programs"][program_id]
     success, message = restart_program(program["path"], program.get("args", ""))
     
-    # 로그 기록
+    # 로그 기록 및 웹훅 알림
     if success:
         log_program_event(program["name"], "restart", f"사용자: {session.get('user')}")
+        send_webhook_notification(program["name"], "restart", f"사용자: {session.get('user')}", "info")
     
     return jsonify({"success": success, "message": message})
 

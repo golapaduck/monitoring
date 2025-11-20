@@ -29,8 +29,10 @@ app.register_blueprint(web_bp)
 # API 엔드포인트 등록
 from api.programs import programs_api
 from api.status import status_api
+from api.webhook import webhook_api
 app.register_blueprint(programs_api)
 app.register_blueprint(status_api)
+app.register_blueprint(webhook_api)
 
 
 if __name__ == "__main__":
