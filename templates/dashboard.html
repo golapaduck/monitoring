@@ -469,6 +469,12 @@
                                     프로그램 재시작
                                 </label>
                             </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="eventCrash" value="crash" checked>
+                                <label class="form-check-label" for="eventCrash">
+                                    예기치 않은 종료 (크래시)
+                                </label>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -801,6 +807,9 @@
                             } else if (log.event_type === 'restart') {
                                 badgeClass = 'bg-warning';
                                 icon = 'bi-arrow-clockwise';
+                            } else if (log.event_type === 'crash') {
+                                badgeClass = 'bg-danger';
+                                icon = 'bi-exclamation-triangle-fill';
                             }
                             
                             logsHtml += `
@@ -855,6 +864,7 @@
                     document.getElementById('eventStart').checked = events.includes('start');
                     document.getElementById('eventStop').checked = events.includes('stop');
                     document.getElementById('eventRestart').checked = events.includes('restart');
+                    document.getElementById('eventCrash').checked = events.includes('crash');
                     
                     modal.show();
                 })
@@ -874,6 +884,7 @@
             if (document.getElementById('eventStart').checked) events.push('start');
             if (document.getElementById('eventStop').checked) events.push('stop');
             if (document.getElementById('eventRestart').checked) events.push('restart');
+            if (document.getElementById('eventCrash').checked) events.push('crash');
             
             const config = {
                 enabled: enabled,
