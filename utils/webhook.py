@@ -168,9 +168,9 @@ def _send_webhook_sync(program_name, event_type, details="", status="info", webh
             }]
         }
         
-        # 포럼 채널인 경우에만 스레드 이름 설정
-        # 일반 채널에서는 thread_name을 사용하지 않음
-        # (포럼 채널 여부는 첫 응답으로 판단)
+        # 포럼 채널: 스레드 이름 설정 (새 스레드 생성 시)
+        if not thread_id:
+            payload["thread_name"] = f"🖥️ {program_name}"
     else:
         # 일반 웹훅 형식 (기존 방식)
         payload = {
@@ -185,14 +185,19 @@ def _send_webhook_sync(program_name, event_type, details="", status="info", webh
     try:
         # Discord 포럼 채널의 경우 thread_id를 URL 쿼리 파라미터로 전달
         request_url = target_url
-        if is_discord and thread_id:
-            # 기존 스레드에 메시지 추가 (쿼리 파라미터 사용)
-            request_url = f"{target_url}?thread_id={thread_id}"
-            # payload에서 thread_id 제거 (URL에 포함되므로)
-            payload.pop('thread_id', None)
-            print(f"🔄 [Webhook] 기존 스레드에 메시지 추가: {program_name} (ID: {thread_id})")
-        elif is_discord:
-            print(f"📨 [Webhook] Discord 메시지 전송: {program_name} - {event_type}")
+        if is_discord:
+            # wait=true를 추가하여 응답 본문 받기
+            separator = "&" if "?" in target_url else "?"
+            request_url = f"{target_url}{separator}wait=true"
+            
+            if thread_id:
+                # 기존 스레드에 메시지 추가
+                request_url = f"{request_url}&thread_id={thread_id}"
+                # payload에서 thread_id 제거 (URL에 포함되므로)
+                payload.pop('thread_id', None)
+                print(f"🔄 [Webhook] 기존 스레드에 메시지 추가: {program_name} (ID: {thread_id})")
+            else:
+                print(f"🆕 [Webhook] 새 스레드 생성: {payload.get('thread_name', 'Unknown')}")
         
         # 디버깅: 전송하는 페이로드 출력
         print(f"📤 [Webhook] 요청 URL: {request_url[:80]}...")
