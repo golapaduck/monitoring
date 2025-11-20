@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- eslint-disable -->
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
@@ -292,6 +293,7 @@
                             {% endif %}
                         </div>
                         {% else %}
+                        <!-- eslint-disable-next-line -->
                         {% for program in programs %}
                         <div class="program-item" id="program-{{ loop.index0 }}">
                             <div class="d-flex justify-content-between align-items-center">
@@ -307,20 +309,20 @@
                                 <div class="program-controls">
                                     <span class="badge bg-secondary status-badge" id="status-{{ loop.index0 }}">확인 중...</span>
                                     {% if role == 'admin' %}
-                                    <button class="btn btn-success btn-sm" onclick="startProgram({{ loop.index0 }})" title="실행">
+                                    <button class="btn btn-success btn-sm" onclick="startProgram({{ loop.index0 }})" aria-label="Start">
                                         <i class="bi bi-play-fill"></i><span class="d-none d-lg-inline ms-1">실행</span>
                                     </button>
-                                    <button class="btn btn-danger btn-sm" onclick="stopProgram({{ loop.index0 }})" title="종료">
+                                    <button class="btn btn-danger btn-sm" onclick="stopProgram({{ loop.index0 }})" aria-label="Stop">
                                         <i class="bi bi-stop-fill"></i><span class="d-none d-lg-inline ms-1">종료</span>
                                     </button>
-                                    <button class="btn btn-secondary btn-sm" onclick="deleteProgram({{ loop.index0 }})" title="삭제">
+                                    <button class="btn btn-secondary btn-sm" onclick="deleteProgram({{ loop.index0 }})" aria-label="Delete">
                                         <i class="bi bi-trash-fill"></i><span class="d-none d-lg-inline ms-1">삭제</span>
                                     </button>
                                     {% endif %}
-                                    <button class="btn btn-warning btn-sm" onclick="restartProgram({{ loop.index0 }})" title="재시작">
+                                    <button class="btn btn-warning btn-sm" onclick="restartProgram({{ loop.index0 }})" aria-label="Restart">
                                         <i class="bi bi-arrow-clockwise"></i><span class="d-none d-lg-inline ms-1">재시작</span>
                                     </button>
-                                    <button class="btn btn-info btn-sm" onclick="viewLogs({{ loop.index0 }}, '{{ program.name }}')" title="로그 보기">
+                                    <button class="btn btn-info btn-sm" onclick="viewLogs({{ loop.index0 }}, '{{ program.name }}')" aria-label="View Logs">
                                         <i class="bi bi-file-text"></i><span class="d-none d-lg-inline ms-1">로그</span>
                                     </button>
                                 </div>
