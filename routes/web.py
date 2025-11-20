@@ -70,3 +70,16 @@ def dashboard():
         programs=programs_data.get("programs", []),
         status=status_data.get("programs_status", [])
     )
+
+
+@web_bp.route("/health")
+def health():
+    """헬스체크 엔드포인트 - 외부 모니터링용."""
+    from flask import jsonify
+    import time
+    
+    return jsonify({
+        "status": "healthy",
+        "timestamp": time.time(),
+        "service": "monitoring"
+    }), 200
