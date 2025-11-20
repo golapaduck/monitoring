@@ -102,6 +102,8 @@ class ProcessMonitor:
                 "error",
                 webhook_url
             )
+        else:
+            print(f"ℹ️ [Process Monitor] 웹훅 URL이 설정되지 않아 알림을 전송하지 않습니다: {program_name}")
 
 
 # 전역 모니터 인스턴스
