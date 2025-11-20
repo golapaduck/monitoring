@@ -150,16 +150,31 @@ def send_webhook_notification(program_name, event_type, details="", status="info
         )
         
         if response.status_code in [200, 201, 204]:
+            print(f"✅ [Webhook] 알림 전송 성공: {program_name} - {event_type}")
             return True, "Webhook sent successfully"
         else:
-            return False, f"Webhook failed with status {response.status_code}"
+            error_msg = f"Webhook failed with status {response.status_code}"
+            print(f"❌ [Webhook Error] {error_msg}")
+            print(f"   - URL: {config['url'][:50]}...")
+            print(f"   - Response: {response.text[:200]}")
+            return False, error_msg
             
     except requests.exceptions.Timeout:
-        return False, "Webhook request timeout"
+        error_msg = "Webhook request timeout"
+        print(f"⏱️ [Webhook Timeout] {error_msg}")
+        print(f"   - URL: {config['url'][:50]}...")
+        return False, error_msg
     except requests.exceptions.RequestException as e:
-        return False, f"Webhook request failed: {str(e)}"
+        error_msg = f"Webhook request failed: {str(e)}"
+        print(f"🔌 [Webhook Connection Error] {error_msg}")
+        print(f"   - URL: {config['url'][:50]}...")
+        return False, error_msg
     except Exception as e:
-        return False, f"Unexpected error: {str(e)}"
+        error_msg = f"Unexpected error: {str(e)}"
+        print(f"💥 [Webhook Unexpected Error] {error_msg}")
+        print(f"   - Program: {program_name}")
+        print(f"   - Event: {event_type}")
+        return False, error_msg
 
 
 def test_webhook(url):
@@ -216,6 +231,9 @@ def test_webhook(url):
         }
     
     try:
+        print(f"🧪 [Webhook Test] 테스트 시작...")
+        print(f"   - URL: {url[:50]}...")
+        
         response = requests.post(
             url,
             json=test_payload,
@@ -224,13 +242,23 @@ def test_webhook(url):
         )
         
         if response.status_code in [200, 201, 204]:
+            print(f"✅ [Webhook Test] 테스트 성공! (상태 코드: {response.status_code})")
             return True, f"테스트 성공! (상태 코드: {response.status_code})"
         else:
-            return False, f"테스트 실패 (상태 코드: {response.status_code})"
+            error_msg = f"테스트 실패 (상태 코드: {response.status_code})"
+            print(f"❌ [Webhook Test Error] {error_msg}")
+            print(f"   - Response: {response.text[:200]}")
+            return False, error_msg
             
     except requests.exceptions.Timeout:
-        return False, "요청 시간 초과 (5초)"
+        error_msg = "요청 시간 초과 (5초)"
+        print(f"⏱️ [Webhook Test Timeout] {error_msg}")
+        return False, error_msg
     except requests.exceptions.RequestException as e:
-        return False, f"연결 실패: {str(e)}"
+        error_msg = f"연결 실패: {str(e)}"
+        print(f"🔌 [Webhook Test Connection Error] {error_msg}")
+        return False, error_msg
     except Exception as e:
-        return False, f"오류 발생: {str(e)}"
+        error_msg = f"오류 발생: {str(e)}"
+        print(f"💥 [Webhook Test Unexpected Error] {error_msg}")
+        return False, error_msg
