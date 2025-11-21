@@ -1,10 +1,12 @@
 import { useState } from 'react'
-import { Play, Square, RotateCw, Trash2, Settings, AlertTriangle } from 'lucide-react'
+import { Play, Square, RotateCw, Trash2, Settings, AlertTriangle, Edit } from 'lucide-react'
 import { startProgram, stopProgram, restartProgram, deleteProgram } from '../lib/api'
+import EditProgramModal from './EditProgramModal'
 
 export default function ProgramCard({ program, onUpdate }) {
   const [loading, setLoading] = useState(false)
   const [showForceStop, setShowForceStop] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
 
   const handleStart = async () => {
     setLoading(true)
@@ -161,6 +163,14 @@ export default function ProgramCard({ program, onUpdate }) {
         </button>
 
         <button
+          onClick={() => setShowEditModal(true)}
+          disabled={loading}
+          className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+        >
+          <Edit className="w-4 h-4" />
+        </button>
+
+        <button
           onClick={handleDelete}
           disabled={loading}
           className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
@@ -174,6 +184,18 @@ export default function ProgramCard({ program, onUpdate }) {
         <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center rounded-lg">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
+      )}
+
+      {/* 수정 모달 */}
+      {showEditModal && (
+        <EditProgramModal
+          program={program}
+          onClose={() => setShowEditModal(false)}
+          onSuccess={() => {
+            setShowEditModal(false)
+            onUpdate()
+          }}
+        />
       )}
     </div>
   )
