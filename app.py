@@ -32,6 +32,11 @@ users_data = load_json(USERS_JSON, {"users": []})
 users_data = migrate_plain_passwords(users_data)
 save_json(USERS_JSON, users_data)
 
+# SQLite 데이터베이스 초기화 및 마이그레이션
+from utils.database import init_database, migrate_from_json
+init_database()
+migrate_from_json()
+
 # 프로세스 모니터 시작 (10초 간격)
 # DEBUG 모드가 아니거나, reloader의 메인 프로세스에서만 실행
 if not Config.FLASK_DEBUG or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':

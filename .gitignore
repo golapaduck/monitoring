@@ -31,8 +31,10 @@ wheels/
 instance/
 .webassets-cache
 
-# Data files (JSON DB)
+# Data files (JSON DB & SQLite)
 data/*.json
+data/*.db
+data/*.db-journal
 doc/
 
 # IDE
