@@ -285,13 +285,14 @@ def send_webhook_notification(program_name, event_type, details="", status="info
     """웹훅 알림 전송 (비동기 처리).
     
     백그라운드 스레드에서 웹훅을 전송하여 메인 프로세스를 블로킹하지 않습니다.
+    다중 웹훅 URL을 지원합니다 (리스트 또는 단일 URL).
     
     Args:
         program_name: 프로그램 이름
         event_type: 이벤트 타입 ('start', 'stop', 'restart', 'crash')
         details: 추가 상세 정보
         status: 알림 상태 ('info', 'success', 'warning', 'error')
-        webhook_url: 프로그램별 웹훅 URL
+        webhook_url: 프로그램별 웹훅 URL (str 또는 list)
         
     Returns:
         tuple: (True, "Webhook queued") - 즉시 반환
@@ -300,25 +301,36 @@ def send_webhook_notification(program_name, event_type, details="", status="info
     if not webhook_url:
         return True, "No program-specific webhook configured"
     
-    # 에러 처리를 위한 래퍼 함수
-    def _send_with_error_handling():
-        try:
-            _send_webhook_sync(program_name, event_type, details, status, webhook_url)
-        except Exception as e:
-            print(f"💥 [Webhook Thread Error] {program_name} - {event_type}: {str(e)}")
-            import traceback
-            traceback.print_exc()
+    # 단일 URL을 리스트로 변환
+    webhook_urls = webhook_url if isinstance(webhook_url, list) else [webhook_url]
     
-    # 백그라운드 스레드에서 웹훅 전송
-    thread = threading.Thread(
-        target=_send_with_error_handling,
-        daemon=True,
-        name=f"Webhook-{program_name}-{event_type}"
-    )
-    thread.start()
+    # 빈 URL 필터링
+    webhook_urls = [url for url in webhook_urls if url and url.strip()]
     
-    print(f"🚀 [Webhook] 비동기 전송 시작: {program_name} - {event_type}")
-    return True, "Webhook queued for async delivery"
+    if not webhook_urls:
+        return True, "No valid webhook URLs configured"
+    
+    # 각 웹훅 URL에 대해 비동기 전송
+    for url in webhook_urls:
+        # 에러 처리를 위한 래퍼 함수
+        def _send_with_error_handling(webhook_url=url):
+            try:
+                _send_webhook_sync(program_name, event_type, details, status, webhook_url)
+            except Exception as e:
+                print(f"💥 [Webhook Thread Error] {program_name} - {event_type} ({webhook_url[:50]}...): {str(e)}")
+                import traceback
+                traceback.print_exc()
+        
+        # 백그라운드 스레드에서 웹훅 전송
+        thread = threading.Thread(
+            target=_send_with_error_handling,
+            daemon=True,
+            name=f"Webhook-{program_name}-{event_type}-{webhook_urls.index(url)}"
+        )
+        thread.start()
+    
+    print(f"🚀 [Webhook] 비동기 전송 시작: {program_name} - {event_type} ({len(webhook_urls)}개 웹훅)")
+    return True, f"Webhook queued for async delivery ({len(webhook_urls)} URLs)"
 
 
 def test_webhook(url):

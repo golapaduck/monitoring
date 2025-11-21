@@ -53,12 +53,20 @@ def programs():
     # 경로 정규화 (절대 경로로 변환)
     normalized_path = normalize_path(data["path"])
     
+    # 웹훅 URL 처리 (단일 또는 다중)
+    webhook_urls = data.get("webhook_urls", data.get("webhook_url", []))
+    if isinstance(webhook_urls, str):
+        # 단일 URL을 리스트로 변환
+        webhook_urls = [webhook_urls] if webhook_urls else []
+    elif not isinstance(webhook_urls, list):
+        webhook_urls = []
+    
     # 프로그램 데이터 생성
     program_data = {
         "name": data["name"],
         "path": normalized_path,
         "args": data.get("args", ""),
-        "webhook_url": data.get("webhook_url", "")
+        "webhook_urls": webhook_urls  # 리스트 형태로 저장
     }
     
     programs_data = load_json(PROGRAMS_JSON, {"programs": []})
@@ -92,8 +100,9 @@ def start(program_id):
     # 로그 기록 및 웹훅 알림
     if success:
         log_program_event(program["name"], "start", f"사용자: {session.get('user')}, PID: {pid}")
-        webhook_url = program.get("webhook_url")  # 프로그램별 웹훅 URL
-        send_webhook_notification(program["name"], "start", f"사용자: {session.get('user')}, PID: {pid}", "success", webhook_url)
+        # 다중 웹훅 URL 지원 (하위 호환성 유지)
+        webhook_urls = program.get("webhook_urls", program.get("webhook_url"))
+        send_webhook_notification(program["name"], "start", f"사용자: {session.get('user')}, PID: {pid}", "success", webhook_urls)
     
     return jsonify({"success": success, "message": message, "pid": pid})
 
@@ -128,8 +137,9 @@ def stop(program_id):
     if success:
         stop_type = "강제 종료" if force else "종료"
         log_program_event(program["name"], "stop", f"사용자: {session.get('user')}, 타입: {stop_type}")
-        webhook_url = program.get("webhook_url")  # 프로그램별 웹훅 URL
-        send_webhook_notification(program["name"], "stop", f"사용자: {session.get('user')}, 타입: {stop_type}", "warning", webhook_url)
+        # 다중 웹훅 URL 지원
+        webhook_urls = program.get("webhook_urls", program.get("webhook_url"))
+        send_webhook_notification(program["name"], "stop", f"사용자: {session.get('user')}, 타입: {stop_type}", "warning", webhook_urls)
     
     return jsonify({"success": success, "message": message})
 
@@ -156,8 +166,9 @@ def restart(program_id):
     # 로그 기록 및 웹훅 알림
     if success:
         log_program_event(program["name"], "restart", f"사용자: {session.get('user')}, PID: {pid}")
-        webhook_url = program.get("webhook_url")  # 프로그램별 웹훅 URL
-        send_webhook_notification(program["name"], "restart", f"사용자: {session.get('user')}, PID: {pid}", "info", webhook_url)
+        # 다중 웹훅 URL 지원
+        webhook_urls = program.get("webhook_urls", program.get("webhook_url"))
+        send_webhook_notification(program["name"], "restart", f"사용자: {session.get('user')}, PID: {pid}", "info", webhook_urls)
     
     return jsonify({"success": success, "message": message, "pid": pid})
 
@@ -189,6 +200,13 @@ def update(program_id):
     # 경로 정규화
     normalized_path = normalize_path(data["path"])
     
+    # 웹훅 URL 처리 (단일 또는 다중)
+    webhook_urls = data.get("webhook_urls", data.get("webhook_url", []))
+    if isinstance(webhook_urls, str):
+        webhook_urls = [webhook_urls] if webhook_urls else []
+    elif not isinstance(webhook_urls, list):
+        webhook_urls = []
+    
     # 기존 PID 유지 (경로가 변경되지 않은 경우)
     old_program = programs_data["programs"][program_id]
     old_pid = old_program.get("pid")
@@ -198,7 +216,7 @@ def update(program_id):
         "name": data["name"],
         "path": normalized_path,
         "args": data.get("args", ""),
-        "webhook_url": data.get("webhook_url", "")
+        "webhook_urls": webhook_urls  # 리스트 형태로 저장
     }
     
     # 경로가 변경되지 않았으면 PID 유지

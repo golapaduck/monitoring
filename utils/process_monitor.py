@@ -64,7 +64,8 @@ class ProcessMonitor:
         for program in programs_data["programs"]:
             program_name = program["name"]
             program_path = program["path"]
-            webhook_url = program.get("webhook_url")
+            # 다중 웹훅 URL 지원 (하위 호환성 유지)
+            webhook_urls = program.get("webhook_urls", program.get("webhook_url"))
             saved_pid = program.get("pid")
             
             # 현재 실행 상태 확인 (PID 우선)
@@ -77,31 +78,31 @@ class ProcessMonitor:
             if was_running is not None:  # 첫 체크가 아닌 경우
                 if was_running and not is_running:
                     # 프로세스가 예기치 않게 종료됨
-                    self._handle_unexpected_termination(program_name, webhook_url)
+                    self._handle_unexpected_termination(program_name, webhook_urls)
             
             # 현재 상태 저장
             self.last_status[program_name] = is_running
     
-    def _handle_unexpected_termination(self, program_name, webhook_url):
+    def _handle_unexpected_termination(self, program_name, webhook_urls):
         """예기치 않은 프로세스 종료 처리.
         
         Args:
             program_name: 프로그램 이름
-            webhook_url: 웹훅 URL
+            webhook_urls: 웹훅 URL (str 또는 list)
         """
         print(f"💥 [Process Monitor] 예기치 않은 종료 감지: {program_name}")
         
         # 로그 기록
         log_program_event(program_name, "crash", "프로세스가 예기치 않게 종료됨")
         
-        # 웹훅 알림 (비동기)
-        if webhook_url:
+        # 웹훅 알림 (비동기, 다중 URL 지원)
+        if webhook_urls:
             send_webhook_notification(
                 program_name, 
                 "crash", 
                 "프로세스가 예기치 않게 종료되었습니다. 원인을 확인하세요.", 
                 "error",
-                webhook_url
+                webhook_urls
             )
         else:
             print(f"ℹ️ [Process Monitor] 웹훅 URL이 설정되지 않아 알림을 전송하지 않습니다: {program_name}")
