@@ -2,12 +2,9 @@
 
 import threading
 import time
-from pathlib import Path
 from utils.process_manager import get_process_status
-from utils.logger import log_program_event
 from utils.webhook import send_webhook_notification
-from utils.data_manager import load_json
-from config import PROGRAMS_JSON
+from utils.database import get_all_programs, log_program_event
 
 
 class ProcessMonitor:
@@ -59,13 +56,13 @@ class ProcessMonitor:
     
     def _check_processes(self):
         """등록된 모든 프로세스 상태 확인."""
-        programs_data = load_json(PROGRAMS_JSON, {"programs": []})
+        programs = get_all_programs()
         
-        for program in programs_data["programs"]:
+        for program in programs:
+            program_id = program["id"]
             program_name = program["name"]
             program_path = program["path"]
-            # 다중 웹훅 URL 지원 (하위 호환성 유지)
-            webhook_urls = program.get("webhook_urls", program.get("webhook_url"))
+            webhook_urls = program.get("webhook_urls")
             saved_pid = program.get("pid")
             
             # 현재 실행 상태 확인 (PID 우선)
@@ -78,22 +75,23 @@ class ProcessMonitor:
             if was_running is not None:  # 첫 체크가 아닌 경우
                 if was_running and not is_running:
                     # 프로세스가 예기치 않게 종료됨
-                    self._handle_unexpected_termination(program_name, webhook_urls)
+                    self._handle_unexpected_termination(program_id, program_name, webhook_urls)
             
             # 현재 상태 저장
             self.last_status[program_name] = is_running
     
-    def _handle_unexpected_termination(self, program_name, webhook_urls):
+    def _handle_unexpected_termination(self, program_id, program_name, webhook_urls):
         """예기치 않은 프로세스 종료 처리.
         
         Args:
+            program_id: 프로그램 ID
             program_name: 프로그램 이름
-            webhook_urls: 웹훅 URL (str 또는 list)
+            webhook_urls: 웹훅 URL (list)
         """
         print(f"💥 [Process Monitor] 예기치 않은 종료 감지: {program_name}")
         
-        # 로그 기록
-        log_program_event(program_name, "crash", "프로세스가 예기치 않게 종료됨")
+        # 로그 기록 (SQLite)
+        log_program_event(program_id, "crash", "프로세스가 예기치 않게 종료됨")
         
         # 웹훅 알림 (비동기, 다중 URL 지원)
         if webhook_urls:

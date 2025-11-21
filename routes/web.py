@@ -11,6 +11,7 @@ web_bp = Blueprint('web', __name__)
 from config import USERS_JSON, PROGRAMS_JSON, STATUS_JSON
 from utils.data_manager import load_json
 from utils.auth import verify_password
+from utils.database import get_user_by_username
 
 
 @web_bp.route("/")
@@ -30,12 +31,8 @@ def login():
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "").strip()
         
-        users_data = load_json(USERS_JSON, {"users": []})
-        user = next(
-            (u for u in users_data.get("users", []) 
-             if u["username"] == username),
-            None
-        )
+        # SQLite에서 사용자 조회
+        user = get_user_by_username(username)
         
         # 사용자가 존재하고 비밀번호가 일치하는지 확인
         if user and verify_password(password, user["password"]):

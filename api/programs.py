@@ -16,8 +16,18 @@ from utils.process_manager import (
     restart_program,
     get_process_stats
 )
-from utils.logger import log_program_event, get_program_logs, calculate_uptime
+from utils.logger import log_program_event as log_event_json, get_program_logs, calculate_uptime
 from utils.webhook import send_webhook_notification
+from utils.database import (
+    get_all_programs,
+    get_program_by_id,
+    add_program as db_add_program,
+    update_program as db_update_program,
+    delete_program as db_delete_program,
+    update_program_pid,
+    remove_program_pid,
+    log_program_event as db_log_event
+)
 from utils.path_validator import validate_program_path, normalize_path, get_path_info
 
 
@@ -28,9 +38,9 @@ def programs():
         return jsonify({"error": "Unauthorized"}), 401
     
     if request.method == "GET":
-        # 프로그램 목록 조회
-        programs_data = load_json(PROGRAMS_JSON, {"programs": []})
-        return jsonify(programs_data)
+        # SQLite에서 프로그램 목록 조회
+        programs = get_all_programs()
+        return jsonify({"programs": programs})
     
     # POST - 프로그램 등록 (관리자만)
     if session.get("role") != "admin":
@@ -56,26 +66,21 @@ def programs():
     # 웹훅 URL 처리 (단일 또는 다중)
     webhook_urls = data.get("webhook_urls", data.get("webhook_url", []))
     if isinstance(webhook_urls, str):
-        # 단일 URL을 리스트로 변환
         webhook_urls = [webhook_urls] if webhook_urls else []
     elif not isinstance(webhook_urls, list):
         webhook_urls = []
     
-    # 프로그램 데이터 생성
-    program_data = {
-        "name": data["name"],
-        "path": normalized_path,
-        "args": data.get("args", ""),
-        "webhook_urls": webhook_urls  # 리스트 형태로 저장
-    }
+    # SQLite에 프로그램 추가
+    program_id = db_add_program(
+        name=data["name"],
+        path=normalized_path,
+        args=data.get("args", ""),
+        webhook_urls=webhook_urls
+    )
     
-    programs_data = load_json(PROGRAMS_JSON, {"programs": []})
-    programs_data["programs"].append(program_data)
-    save_json(PROGRAMS_JSON, programs_data)
+    print(f"✅ [Programs API] 프로그램 등록: {data['name']} -> {normalized_path} (ID: {program_id})")
     
-    print(f"✅ [Programs API] 프로그램 등록: {data['name']} -> {normalized_path}")
-    
-    return jsonify({"success": True, "message": "프로그램이 등록되었습니다."})
+    return jsonify({"success": True, "message": "프로그램이 등록되었습니다.", "id": program_id})
 
 
 @programs_api.route("/<int:program_id>/start", methods=["POST"])
@@ -84,24 +89,21 @@ def start(program_id):
     if "user" not in session or session.get("role") != "admin":
         return jsonify({"error": "Forbidden"}), 403
     
-    programs_data = load_json(PROGRAMS_JSON, {"programs": []})
-    if program_id >= len(programs_data["programs"]):
+    program = get_program_by_id(program_id)
+    if not program:
         return jsonify({"error": "Program not found"}), 404
     
-    program = programs_data["programs"][program_id]
     success, message, pid = start_program(program["path"], program.get("args", ""))
     
     # PID 저장
     if success and pid:
-        programs_data["programs"][program_id]["pid"] = pid
-        save_json(PROGRAMS_JSON, programs_data)
+        update_program_pid(program_id, pid)
         print(f"💾 [Programs API] PID 저장: {program['name']} -> {pid}")
     
     # 로그 기록 및 웹훅 알림
     if success:
-        log_program_event(program["name"], "start", f"사용자: {session.get('user')}, PID: {pid}")
-        # 다중 웹훅 URL 지원 (하위 호환성 유지)
-        webhook_urls = program.get("webhook_urls", program.get("webhook_url"))
+        db_log_event(program_id, "start", f"사용자: {session.get('user')}, PID: {pid}")
+        webhook_urls = program.get("webhook_urls")
         send_webhook_notification(program["name"], "start", f"사용자: {session.get('user')}, PID: {pid}", "success", webhook_urls)
     
     return jsonify({"success": success, "message": message, "pid": pid})
@@ -113,11 +115,9 @@ def stop(program_id):
     if "user" not in session or session.get("role") != "admin":
         return jsonify({"error": "Forbidden"}), 403
     
-    programs_data = load_json(PROGRAMS_JSON, {"programs": []})
-    if program_id >= len(programs_data["programs"]):
+    program = get_program_by_id(program_id)
+    if not program:
         return jsonify({"error": "Program not found"}), 404
-    
-    program = programs_data["programs"][program_id]
     
     # 강제 종료 옵션 확인 (쿼리 파라미터 또는 JSON 바디)
     force = request.args.get('force', 'false').lower() == 'true'
@@ -128,17 +128,15 @@ def stop(program_id):
     success, message = stop_program(program["path"], force=force)
     
     # PID 제거
-    if success and "pid" in programs_data["programs"][program_id]:
-        del programs_data["programs"][program_id]["pid"]
-        save_json(PROGRAMS_JSON, programs_data)
+    if success:
+        remove_program_pid(program_id)
         print(f"🗑️ [Programs API] PID 제거: {program['name']}")
     
     # 로그 기록 및 웹훅 알림
     if success:
         stop_type = "강제 종료" if force else "종료"
-        log_program_event(program["name"], "stop", f"사용자: {session.get('user')}, 타입: {stop_type}")
-        # 다중 웹훅 URL 지원
-        webhook_urls = program.get("webhook_urls", program.get("webhook_url"))
+        db_log_event(program_id, "stop", f"사용자: {session.get('user')}, 타입: {stop_type}")
+        webhook_urls = program.get("webhook_urls")
         send_webhook_notification(program["name"], "stop", f"사용자: {session.get('user')}, 타입: {stop_type}", "warning", webhook_urls)
     
     return jsonify({"success": success, "message": message})
@@ -150,24 +148,21 @@ def restart(program_id):
     if "user" not in session:
         return jsonify({"error": "Unauthorized"}), 401
     
-    programs_data = load_json(PROGRAMS_JSON, {"programs": []})
-    if program_id >= len(programs_data["programs"]):
+    program = get_program_by_id(program_id)
+    if not program:
         return jsonify({"error": "Program not found"}), 404
     
-    program = programs_data["programs"][program_id]
     success, message, pid = restart_program(program["path"], program.get("args", ""))
     
     # PID 업데이트
     if success and pid:
-        programs_data["programs"][program_id]["pid"] = pid
-        save_json(PROGRAMS_JSON, programs_data)
+        update_program_pid(program_id, pid)
         print(f"🔄 [Programs API] PID 업데이트: {program['name']} -> {pid}")
     
     # 로그 기록 및 웹훅 알림
     if success:
-        log_program_event(program["name"], "restart", f"사용자: {session.get('user')}, PID: {pid}")
-        # 다중 웹훅 URL 지원
-        webhook_urls = program.get("webhook_urls", program.get("webhook_url"))
+        db_log_event(program_id, "restart", f"사용자: {session.get('user')}, PID: {pid}")
+        webhook_urls = program.get("webhook_urls")
         send_webhook_notification(program["name"], "restart", f"사용자: {session.get('user')}, PID: {pid}", "info", webhook_urls)
     
     return jsonify({"success": success, "message": message, "pid": pid})
@@ -179,8 +174,8 @@ def update(program_id):
     if "user" not in session or session.get("role") != "admin":
         return jsonify({"error": "Forbidden"}), 403
     
-    programs_data = load_json(PROGRAMS_JSON, {"programs": []})
-    if program_id >= len(programs_data["programs"]):
+    program = get_program_by_id(program_id)
+    if not program:
         return jsonify({"error": "Program not found"}), 404
     
     data = request.get_json()
@@ -200,30 +195,21 @@ def update(program_id):
     # 경로 정규화
     normalized_path = normalize_path(data["path"])
     
-    # 웹훅 URL 처리 (단일 또는 다중)
+    # 웹훅 URL 처리
     webhook_urls = data.get("webhook_urls", data.get("webhook_url", []))
     if isinstance(webhook_urls, str):
         webhook_urls = [webhook_urls] if webhook_urls else []
     elif not isinstance(webhook_urls, list):
         webhook_urls = []
     
-    # 기존 PID 유지 (경로가 변경되지 않은 경우)
-    old_program = programs_data["programs"][program_id]
-    old_pid = old_program.get("pid")
-    
-    # 프로그램 정보 업데이트
-    programs_data["programs"][program_id] = {
-        "name": data["name"],
-        "path": normalized_path,
-        "args": data.get("args", ""),
-        "webhook_urls": webhook_urls  # 리스트 형태로 저장
-    }
-    
-    # 경로가 변경되지 않았으면 PID 유지
-    if old_program["path"] == normalized_path and old_pid:
-        programs_data["programs"][program_id]["pid"] = old_pid
-    
-    save_json(PROGRAMS_JSON, programs_data)
+    # SQLite에서 프로그램 업데이트
+    db_update_program(
+        program_id=program_id,
+        name=data["name"],
+        path=normalized_path,
+        args=data.get("args", ""),
+        webhook_urls=webhook_urls
+    )
     
     print(f"✅ [Programs API] 프로그램 수정: {data['name']} -> {normalized_path}")
     
@@ -236,12 +222,13 @@ def delete(program_id):
     if "user" not in session or session.get("role") != "admin":
         return jsonify({"error": "Forbidden"}), 403
     
-    programs_data = load_json(PROGRAMS_JSON, {"programs": []})
-    if program_id >= len(programs_data["programs"]):
+    program = get_program_by_id(program_id)
+    if not program:
         return jsonify({"error": "Program not found"}), 404
     
-    del programs_data["programs"][program_id]
-    save_json(PROGRAMS_JSON, programs_data)
+    db_delete_program(program_id)
+    
+    print(f"🗑️ [Programs API] 프로그램 삭제: {program['name']}")
     
     return jsonify({"success": True})
 
@@ -252,10 +239,10 @@ def status():
     if "user" not in session:
         return jsonify({"error": "Unauthorized"}), 401
     
-    programs_data = load_json(PROGRAMS_JSON, {"programs": []})
+    programs = get_all_programs()
     status_list = []
     
-    for idx, program in enumerate(programs_data["programs"]):
+    for program in programs:
         # 저장된 PID 가져오기
         saved_pid = program.get("pid")
         
@@ -264,22 +251,19 @@ def status():
         
         # PID가 변경되었으면 업데이트
         if stats['running'] and stats['pid'] != saved_pid:
-            programs_data["programs"][idx]["pid"] = stats['pid']
-            save_json(PROGRAMS_JSON, programs_data)
+            update_program_pid(program['id'], stats['pid'])
             print(f"🔄 [Status] PID 업데이트: {program['name']} -> {stats['pid']}")
         
         # PID가 없어졌으면 제거
         if not stats['running'] and saved_pid:
-            if "pid" in programs_data["programs"][idx]:
-                del programs_data["programs"][idx]["pid"]
-                save_json(PROGRAMS_JSON, programs_data)
-                print(f"🗑️ [Status] PID 제거: {program['name']}")
+            remove_program_pid(program['id'])
+            print(f"🗑️ [Status] PID 제거: {program['name']}")
         
         # 가동 시간 계산
         uptime_info = calculate_uptime(program["name"])
         
         status_list.append({
-            "id": idx,
+            "id": program['id'],
             "name": program["name"],
             "running": stats['running'],
             "status": "실행 중" if stats['running'] else "중지됨",
