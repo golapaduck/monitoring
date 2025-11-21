@@ -25,3 +25,9 @@ class Config:
     FLASK_HOST = os.getenv("FLASK_HOST", "0.0.0.0")
     FLASK_PORT = int(os.getenv("FLASK_PORT", "5000"))
     FLASK_DEBUG = os.getenv("FLASK_DEBUG", "True").lower() == "true"
+    
+    # 세션 설정
+    PERMANENT_SESSION_LIFETIME = int(os.getenv("SESSION_LIFETIME", "3600"))  # 기본 1시간 (초 단위)
+    SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "False").lower() == "true"  # HTTPS 전용
+    SESSION_COOKIE_HTTPONLY = True  # JavaScript 접근 차단
+    SESSION_COOKIE_SAMESITE = "Lax"  # CSRF 보호

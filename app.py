@@ -11,6 +11,9 @@ from flask import Flask
 from config import Config, USERS_JSON, PROGRAMS_JSON, STATUS_JSON
 from utils.data_manager import init_default_data
 from utils.process_monitor import start_process_monitor, stop_process_monitor
+from utils.auth import migrate_plain_passwords
+from utils.data_manager import load_json, save_json
+from datetime import timedelta
 import atexit
 import os
 
@@ -18,8 +21,16 @@ import os
 app = Flask(__name__)
 app.config.from_object(Config)
 
+# 세션 타임아웃 설정
+app.permanent_session_lifetime = timedelta(seconds=Config.PERMANENT_SESSION_LIFETIME)
+
 # 앱 시작 시 기본 데이터 초기화
 init_default_data(USERS_JSON, PROGRAMS_JSON, STATUS_JSON)
+
+# 기존 평문 비밀번호를 해시로 마이그레이션
+users_data = load_json(USERS_JSON, {"users": []})
+users_data = migrate_plain_passwords(users_data)
+save_json(USERS_JSON, users_data)
 
 # Flask reloader의 메인 프로세스에서만 프로세스 모니터 시작
 # (werkzeug의 reloader는 자식 프로세스를 생성하므로 중복 실행 방지)

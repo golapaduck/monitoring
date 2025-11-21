@@ -10,6 +10,7 @@ web_bp = Blueprint('web', __name__)
 # 설정 및 유틸리티 임포트
 from config import USERS_JSON, PROGRAMS_JSON, STATUS_JSON
 from utils.data_manager import load_json
+from utils.auth import verify_password
 
 
 @web_bp.route("/")
@@ -32,16 +33,22 @@ def login():
         users_data = load_json(USERS_JSON, {"users": []})
         user = next(
             (u for u in users_data.get("users", []) 
-             if u["username"] == username and u["password"] == password),
+             if u["username"] == username),
             None
         )
         
-        if user:
+        # 사용자가 존재하고 비밀번호가 일치하는지 확인
+        if user and verify_password(password, user["password"]):
+            # 세션을 영구적으로 설정 (타임아웃 적용)
+            session.permanent = True
             session["user"] = username
             session["role"] = user["role"]
+            
+            print(f"✅ [Login] 사용자 '{username}' 로그인 성공 (역할: {user['role']})")
             return redirect(url_for("web.dashboard"))
         else:
             error = "아이디 또는 비밀번호가 올바르지 않습니다."
+            print(f"❌ [Login] 로그인 실패: {username}")
     
     return render_template("login.html", error=error)
 
