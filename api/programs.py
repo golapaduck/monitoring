@@ -127,6 +127,8 @@ def stop(program_id):
     
     success, message = stop_program(program["path"], force=force)
     
+    print(f"🔍 [Programs API] stop_program 결과: success={success}, message={message}")
+    
     # PID 제거
     if success:
         remove_program_pid(program_id)
@@ -138,6 +140,8 @@ def stop(program_id):
         db_log_event(program_id, "stop", f"사용자: {session.get('user')}, 타입: {stop_type}")
         webhook_urls = program.get("webhook_urls")
         send_webhook_notification(program["name"], "stop", f"사용자: {session.get('user')}, 타입: {stop_type}", "warning", webhook_urls)
+    else:
+        print(f"❌ [Programs API] 종료 실패: {message}")
     
     return jsonify({"success": success, "message": message})
 
