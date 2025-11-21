@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { X, FolderOpen } from 'lucide-react'
 import { updateProgram } from '../lib/api'
+import FileExplorerModal from './FileExplorerModal'
 
 export default function EditProgramModal({ program, onClose, onSuccess }) {
   const [formData, setFormData] = useState({
@@ -11,8 +12,9 @@ export default function EditProgramModal({ program, onClose, onSuccess }) {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showExplorer, setShowExplorer] = useState(false)
 
-  // 프로그램 데이터 로드
+  // 프로그램 데이터 로드 (최초 1회만)
   useEffect(() => {
     if (program) {
       setFormData({
@@ -24,7 +26,8 @@ export default function EditProgramModal({ program, onClose, onSuccess }) {
           [''],
       })
     }
-  }, [program])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [program.id]) // program 전체가 아닌 program.id만 의존 (의도적)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -32,6 +35,8 @@ export default function EditProgramModal({ program, onClose, onSuccess }) {
     setLoading(true)
 
     try {
+      console.log('Updating program:', program.id, formData)
+      
       // 빈 웹훅 URL 필터링
       const webhookUrls = formData.webhook_urls.filter(url => url.trim())
       
@@ -41,6 +46,7 @@ export default function EditProgramModal({ program, onClose, onSuccess }) {
       })
       onSuccess()
     } catch (err) {
+      console.error('Update error:', err)
       setError(err.message)
     } finally {
       setLoading(false)
@@ -123,8 +129,9 @@ export default function EditProgramModal({ program, onClose, onSuccess }) {
               />
               <button
                 type="button"
+                onClick={() => setShowExplorer(true)}
                 className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                title="파일 탐색기 (추후 구현)"
+                title="파일 탐색기"
               >
                 <FolderOpen className="w-5 h-5 text-gray-600" />
               </button>
@@ -198,6 +205,17 @@ export default function EditProgramModal({ program, onClose, onSuccess }) {
           </div>
         </form>
       </div>
+
+      {/* 파일 탐색기 모달 */}
+      {showExplorer && (
+        <FileExplorerModal
+          onSelect={(path) => {
+            setFormData({ ...formData, path })
+            setShowExplorer(false)
+          }}
+          onClose={() => setShowExplorer(false)}
+        />
+      )}
     </div>
   )
 }

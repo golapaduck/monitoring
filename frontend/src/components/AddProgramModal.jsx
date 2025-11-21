@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { X, FolderOpen } from 'lucide-react'
 import { addProgram } from '../lib/api'
+import FileExplorerModal from './FileExplorerModal'
 
 export default function AddProgramModal({ onClose, onSuccess }) {
   const [formData, setFormData] = useState({
@@ -11,6 +12,7 @@ export default function AddProgramModal({ onClose, onSuccess }) {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showExplorer, setShowExplorer] = useState(false)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -109,8 +111,9 @@ export default function AddProgramModal({ onClose, onSuccess }) {
               />
               <button
                 type="button"
+                onClick={() => setShowExplorer(true)}
                 className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                title="파일 탐색기 (추후 구현)"
+                title="파일 탐색기"
               >
                 <FolderOpen className="w-5 h-5 text-gray-600" />
               </button>
@@ -184,6 +187,17 @@ export default function AddProgramModal({ onClose, onSuccess }) {
           </div>
         </form>
       </div>
+
+      {/* 파일 탐색기 모달 */}
+      {showExplorer && (
+        <FileExplorerModal
+          onSelect={(path) => {
+            setFormData({ ...formData, path })
+            setShowExplorer(false)
+          }}
+          onClose={() => setShowExplorer(false)}
+        />
+      )}
     </div>
   )
 }
