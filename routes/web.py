@@ -1,6 +1,6 @@
 """웹 페이지 라우트 (로그인, 대시보드 등)."""
 
-from flask import Blueprint, render_template, request, redirect, url_for, session
+from flask import Blueprint, render_template, request, redirect, url_for, session, jsonify
 from pathlib import Path
 import json
 
