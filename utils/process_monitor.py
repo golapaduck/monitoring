@@ -19,6 +19,7 @@ class ProcessMonitor:
         self.running = False
         self.thread = None
         self.last_status = {}  # {program_name: running_status}
+        self.recent_stops = set()  # 최근 의도적으로 종료된 프로그램 이름
         
     def start(self):
         """모니터링 시작."""
@@ -74,8 +75,14 @@ class ProcessMonitor:
             # 상태 변화 감지
             if was_running is not None:  # 첫 체크가 아닌 경우
                 if was_running and not is_running:
-                    # 프로세스가 예기치 않게 종료됨
-                    self._handle_unexpected_termination(program_id, program_name, webhook_urls)
+                    # 의도적 종료인지 확인
+                    if program_name in self.recent_stops:
+                        # 의도적 종료 - 웹훅 전송 안 함
+                        print(f"ℹ️ [Process Monitor] 의도적 종료 감지: {program_name}")
+                        self.recent_stops.remove(program_name)
+                    else:
+                        # 프로세스가 예기치 않게 종료됨
+                        self._handle_unexpected_termination(program_id, program_name, webhook_urls)
             
             # 현재 상태 저장
             self.last_status[program_name] = is_running
@@ -127,3 +134,15 @@ def stop_process_monitor():
     global _monitor
     if _monitor:
         _monitor.stop()
+
+
+def mark_intentional_stop(program_name):
+    """프로그램이 의도적으로 종료되었음을 표시.
+    
+    Args:
+        program_name: 프로그램 이름
+    """
+    global _monitor
+    if _monitor:
+        _monitor.recent_stops.add(program_name)
+        print(f"✅ [Process Monitor] 의도적 종료 등록: {program_name}")

@@ -28,6 +28,7 @@ from utils.database import (
     remove_program_pid,
     log_program_event as db_log_event
 )
+from utils.process_monitor import mark_intentional_stop
 from utils.path_validator import validate_program_path, normalize_path, get_path_info
 
 
@@ -128,6 +129,9 @@ def stop(program_id):
                 force = data.get('force', force)
             except:
                 pass  # JSON 파싱 실패 시 쿼리 파라미터 사용
+        
+        # 의도적 종료 표시 (프로세스 모니터가 crash로 감지하지 않도록)
+        mark_intentional_stop(program["name"])
         
         success, message = stop_program(program["path"], force=force)
         
