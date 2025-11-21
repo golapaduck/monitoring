@@ -50,9 +50,11 @@ app.register_blueprint(web_bp)
 from api.programs import programs_api
 from api.status import status_api
 from api.webhook import webhook_api
+from api.file_explorer import file_explorer_api
 app.register_blueprint(programs_api)
 app.register_blueprint(status_api)
 app.register_blueprint(webhook_api)
+app.register_blueprint(file_explorer_api)
 
 
 if __name__ == "__main__":
