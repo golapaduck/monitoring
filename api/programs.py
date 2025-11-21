@@ -18,6 +18,7 @@ from utils.process_manager import (
 )
 from utils.logger import log_program_event, get_program_logs, calculate_uptime
 from utils.webhook import send_webhook_notification
+from utils.path_validator import validate_program_path, normalize_path, get_path_info
 
 
 @programs_api.route("", methods=["GET", "POST"])
@@ -36,11 +37,37 @@ def programs():
         return jsonify({"error": "Forbidden"}), 403
     
     data = request.get_json()
+    
+    # 필수 필드 확인
+    if not data.get("name"):
+        return jsonify({"error": "프로그램 이름이 필요합니다."}), 400
+    
+    if not data.get("path"):
+        return jsonify({"error": "프로그램 경로가 필요합니다."}), 400
+    
+    # 경로 유효성 검증
+    is_valid, error_msg = validate_program_path(data["path"])
+    if not is_valid:
+        return jsonify({"error": error_msg}), 400
+    
+    # 경로 정규화 (절대 경로로 변환)
+    normalized_path = normalize_path(data["path"])
+    
+    # 프로그램 데이터 생성
+    program_data = {
+        "name": data["name"],
+        "path": normalized_path,
+        "args": data.get("args", ""),
+        "webhook_url": data.get("webhook_url", "")
+    }
+    
     programs_data = load_json(PROGRAMS_JSON, {"programs": []})
-    programs_data["programs"].append(data)
+    programs_data["programs"].append(program_data)
     save_json(PROGRAMS_JSON, programs_data)
     
-    return jsonify({"success": True})
+    print(f"✅ [Programs API] 프로그램 등록: {data['name']} -> {normalized_path}")
+    
+    return jsonify({"success": True, "message": "프로그램이 등록되었습니다."})
 
 
 @programs_api.route("/<int:program_id>/start", methods=["POST"])
@@ -140,18 +167,39 @@ def update(program_id):
     data = request.get_json()
     
     # 필수 필드 검증
-    if not data.get("name") or not data.get("path"):
-        return jsonify({"error": "Name and path are required"}), 400
+    if not data.get("name"):
+        return jsonify({"error": "프로그램 이름이 필요합니다."}), 400
+    
+    if not data.get("path"):
+        return jsonify({"error": "프로그램 경로가 필요합니다."}), 400
+    
+    # 경로 유효성 검증
+    is_valid, error_msg = validate_program_path(data["path"])
+    if not is_valid:
+        return jsonify({"error": error_msg}), 400
+    
+    # 경로 정규화
+    normalized_path = normalize_path(data["path"])
+    
+    # 기존 PID 유지 (경로가 변경되지 않은 경우)
+    old_program = programs_data["programs"][program_id]
+    old_pid = old_program.get("pid")
     
     # 프로그램 정보 업데이트
     programs_data["programs"][program_id] = {
         "name": data["name"],
-        "path": data["path"],
+        "path": normalized_path,
         "args": data.get("args", ""),
         "webhook_url": data.get("webhook_url", "")
     }
     
+    # 경로가 변경되지 않았으면 PID 유지
+    if old_program["path"] == normalized_path and old_pid:
+        programs_data["programs"][program_id]["pid"] = old_pid
+    
     save_json(PROGRAMS_JSON, programs_data)
+    
+    print(f"✅ [Programs API] 프로그램 수정: {data['name']} -> {normalized_path}")
     
     return jsonify({"success": True, "message": "프로그램 정보가 수정되었습니다."})
 
@@ -246,3 +294,35 @@ def logs(program_id):
         "logs": logs,
         "total": len(logs)
     })
+
+
+@programs_api.route("/validate-path", methods=["POST"])
+def validate_path():
+    """경로 유효성 검증 API (프런트엔드용)."""
+    if "user" not in session or session.get("role") != "admin":
+        return jsonify({"error": "Forbidden"}), 403
+    
+    data = request.get_json()
+    path = data.get("path", "").strip()
+    
+    if not path:
+        return jsonify({"valid": False, "error": "경로가 제공되지 않았습니다."}), 400
+    
+    # 경로 유효성 검증
+    is_valid, error_msg = validate_program_path(path)
+    
+    if is_valid:
+        # 경로 정보 조회
+        path_info = get_path_info(path)
+        normalized = normalize_path(path)
+        
+        return jsonify({
+            "valid": True,
+            "path": normalized,
+            "info": path_info
+        })
+    else:
+        return jsonify({
+            "valid": False,
+            "error": error_msg
+        })
