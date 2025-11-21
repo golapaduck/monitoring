@@ -115,6 +115,10 @@ def stop_program(program_path, force=False):
                 if result.returncode == 0:
                     print(f"✅ [Process Manager] 강제 종료 성공: {program_name}")
                     return True, "프로그램과 모든 자식 프로세스가 강제 종료되었습니다."
+                elif result.returncode == 128:
+                    # 프로세스를 찾을 수 없음 (이미 종료됨)
+                    print(f"ℹ️ [Process Manager] 프로세스가 이미 종료됨: {program_name}")
+                    return True, "프로그램이 이미 종료되었습니다."
                 else:
                     # taskkill 실패 시 psutil로 시도
                     print(f"⚠️ [Process Manager] taskkill 실패, psutil로 재시도: {program_name}")
@@ -156,7 +160,8 @@ def _stop_with_psutil(program_path):
         if killed:
             return True, "프로그램이 종료되었습니다."
         else:
-            return False, "실행 중인 프로그램을 찾을 수 없습니다."
+            # 프로그램이 실행 중이 아니면 성공으로 처리
+            return True, "프로그램이 이미 종료되었습니다."
     except Exception as e:
         return False, f"종료 실패: {str(e)}"
 
