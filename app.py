@@ -32,10 +32,9 @@ users_data = load_json(USERS_JSON, {"users": []})
 users_data = migrate_plain_passwords(users_data)
 save_json(USERS_JSON, users_data)
 
-# Flask reloader의 메인 프로세스에서만 프로세스 모니터 시작
-# (werkzeug의 reloader는 자식 프로세스를 생성하므로 중복 실행 방지)
-if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
-    # 프로세스 모니터 시작 (10초 간격)
+# 프로세스 모니터 시작 (10초 간격)
+# DEBUG 모드가 아니거나, reloader의 메인 프로세스에서만 실행
+if not Config.FLASK_DEBUG or os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
     start_process_monitor(check_interval=10)
     # 앱 종료 시 모니터 중지
     atexit.register(stop_process_monitor)
