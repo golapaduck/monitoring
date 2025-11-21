@@ -5,26 +5,52 @@ from pathlib import Path
 import psutil
 
 
-def get_process_status(program_path):
+def get_process_status(program_path, pid=None):
     """프로그램 경로로 프로세스 실행 여부 확인.
+    
+    PID가 제공되면 먼저 PID로 확인하고, 없으면 프로그램 이름으로 확인합니다.
     
     Args:
         program_path: 프로그램 실행 파일 경로
+        pid: 프로세스 ID (선택사항)
         
     Returns:
-        bool: 프로세스가 실행 중이면 True, 아니면 False
+        tuple: (실행 여부, 현재 PID 또는 None)
     """
     try:
-        program_name = Path(program_path).name
-        for proc in psutil.process_iter(['name', 'exe']):
+        # 1단계: PID가 제공된 경우 먼저 PID로 확인
+        if pid is not None:
             try:
+                proc = psutil.Process(pid)
+                # 프로세스가 존재하고 실행 중인지 확인
+                if proc.is_running():
+                    # 프로그램 경로가 일치하는지 확인
+                    try:
+                        proc_exe = proc.exe()
+                        if proc_exe and Path(proc_exe).name.lower() == Path(program_path).name.lower():
+                            return True, pid
+                    except (psutil.AccessDenied, psutil.NoSuchProcess):
+                        # 권한 문제로 경로를 확인할 수 없는 경우, 이름만으로 확인
+                        if proc.name().lower() == Path(program_path).name.lower():
+                            return True, pid
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                # PID로 프로세스를 찾을 수 없으면 2단계로 진행
+                pass
+        
+        # 2단계: 프로그램 이름으로 검색
+        program_name = Path(program_path).name
+        for proc in psutil.process_iter(['name', 'exe', 'pid']):
+            try:
+                # 실행 파일 경로로 비교 (더 정확함)
                 if proc.info['exe'] and Path(proc.info['exe']).name.lower() == program_name.lower():
-                    return True
+                    return True, proc.info['pid']
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue
-        return False
-    except Exception:
-        return False
+        
+        return False, None
+    except Exception as e:
+        print(f"⚠️ [Process Manager] 프로세스 상태 확인 오류: {str(e)}")
+        return False, None
 
 
 def start_program(program_path, args=""):
@@ -35,7 +61,7 @@ def start_program(program_path, args=""):
         args: 실행 인자 (선택사항)
         
     Returns:
-        tuple: (성공 여부, 메시지)
+        tuple: (성공 여부, 메시지, PID 또는 None)
     """
     try:
         cmd = f'"{program_path}"'
@@ -48,9 +74,18 @@ def start_program(program_path, args=""):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
         )
-        return True, "프로그램이 실행되었습니다."
+        
+        # 프로세스 시작 후 PID 찾기 (약간의 지연 후)
+        import time
+        time.sleep(0.5)  # 프로세스 시작 대기
+        
+        is_running, pid = get_process_status(program_path)
+        if is_running and pid:
+            return True, "프로그램이 실행되었습니다.", pid
+        else:
+            return True, "프로그램이 실행되었습니다. (PID 확인 불가)", None
     except Exception as e:
-        return False, f"실행 실패: {str(e)}"
+        return False, f"실행 실패: {str(e)}", None
 
 
 def stop_program(program_path):
@@ -90,7 +125,7 @@ def restart_program(program_path, args=""):
         args: 실행 인자 (선택사항)
         
     Returns:
-        tuple: (성공 여부, 메시지)
+        tuple: (성공 여부, 메시지, PID 또는 None)
     """
     stop_program(program_path)
     import time
@@ -98,24 +133,52 @@ def restart_program(program_path, args=""):
     return start_program(program_path, args)
 
 
-def get_process_stats(program_path):
+def get_process_stats(program_path, pid=None):
     """프로그램의 CPU 및 메모리 사용량 조회.
     
     Args:
         program_path: 프로그램 실행 파일 경로
+        pid: 프로세스 ID (선택사항)
         
     Returns:
         dict: {
             'cpu_percent': CPU 사용률 (0-100),
             'memory_mb': 메모리 사용량 (MB),
             'memory_percent': 메모리 사용률 (0-100),
-            'running': 실행 여부
+            'running': 실행 여부,
+            'pid': 프로세스 ID (실행 중인 경우)
         }
     """
     try:
+        # PID가 제공된 경우 먼저 PID로 확인
+        if pid is not None:
+            try:
+                proc = psutil.Process(pid)
+                if proc.is_running():
+                    # CPU 사용률 계산
+                    cpu_percent = proc.cpu_percent(interval=0.1)
+                    
+                    # 메모리 사용량 (MB 단위)
+                    memory_info = proc.memory_info()
+                    memory_mb = memory_info.rss / (1024 * 1024)
+                    
+                    # 메모리 사용률
+                    memory_percent = proc.memory_percent()
+                    
+                    return {
+                        'cpu_percent': round(cpu_percent, 2),
+                        'memory_mb': round(memory_mb, 2),
+                        'memory_percent': round(memory_percent, 2),
+                        'running': True,
+                        'pid': pid
+                    }
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                pass
+        
+        # 프로그램 이름으로 검색
         program_name = Path(program_path).name
         
-        for proc in psutil.process_iter(['name', 'exe', 'cpu_percent', 'memory_info']):
+        for proc in psutil.process_iter(['name', 'exe', 'cpu_percent', 'memory_info', 'pid']):
             try:
                 if proc.info['exe'] and Path(proc.info['exe']).name.lower() == program_name.lower():
                     # CPU 사용률 계산 (interval=0.1초로 측정)
@@ -132,7 +195,8 @@ def get_process_stats(program_path):
                         'cpu_percent': round(cpu_percent, 2),
                         'memory_mb': round(memory_mb, 2),
                         'memory_percent': round(memory_percent, 2),
-                        'running': True
+                        'running': True,
+                        'pid': proc.info['pid']
                     }
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue
@@ -142,12 +206,14 @@ def get_process_stats(program_path):
             'cpu_percent': 0,
             'memory_mb': 0,
             'memory_percent': 0,
-            'running': False
+            'running': False,
+            'pid': None
         }
     except Exception:
         return {
             'cpu_percent': 0,
             'memory_mb': 0,
             'memory_percent': 0,
-            'running': False
+            'running': False,
+            'pid': None
         }

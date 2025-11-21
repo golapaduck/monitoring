@@ -54,15 +54,21 @@ def start(program_id):
         return jsonify({"error": "Program not found"}), 404
     
     program = programs_data["programs"][program_id]
-    success, message = start_program(program["path"], program.get("args", ""))
+    success, message, pid = start_program(program["path"], program.get("args", ""))
+    
+    # PID 저장
+    if success and pid:
+        programs_data["programs"][program_id]["pid"] = pid
+        save_json(PROGRAMS_JSON, programs_data)
+        print(f"💾 [Programs API] PID 저장: {program['name']} -> {pid}")
     
     # 로그 기록 및 웹훅 알림
     if success:
-        log_program_event(program["name"], "start", f"사용자: {session.get('user')}")
+        log_program_event(program["name"], "start", f"사용자: {session.get('user')}, PID: {pid}")
         webhook_url = program.get("webhook_url")  # 프로그램별 웹훅 URL
-        send_webhook_notification(program["name"], "start", f"사용자: {session.get('user')}", "success", webhook_url)
+        send_webhook_notification(program["name"], "start", f"사용자: {session.get('user')}, PID: {pid}", "success", webhook_url)
     
-    return jsonify({"success": success, "message": message})
+    return jsonify({"success": success, "message": message, "pid": pid})
 
 
 @programs_api.route("/<int:program_id>/stop", methods=["POST"])
@@ -77,6 +83,12 @@ def stop(program_id):
     
     program = programs_data["programs"][program_id]
     success, message = stop_program(program["path"])
+    
+    # PID 제거
+    if success and "pid" in programs_data["programs"][program_id]:
+        del programs_data["programs"][program_id]["pid"]
+        save_json(PROGRAMS_JSON, programs_data)
+        print(f"🗑️ [Programs API] PID 제거: {program['name']}")
     
     # 로그 기록 및 웹훅 알림
     if success:
@@ -98,15 +110,21 @@ def restart(program_id):
         return jsonify({"error": "Program not found"}), 404
     
     program = programs_data["programs"][program_id]
-    success, message = restart_program(program["path"], program.get("args", ""))
+    success, message, pid = restart_program(program["path"], program.get("args", ""))
+    
+    # PID 업데이트
+    if success and pid:
+        programs_data["programs"][program_id]["pid"] = pid
+        save_json(PROGRAMS_JSON, programs_data)
+        print(f"🔄 [Programs API] PID 업데이트: {program['name']} -> {pid}")
     
     # 로그 기록 및 웹훅 알림
     if success:
-        log_program_event(program["name"], "restart", f"사용자: {session.get('user')}")
+        log_program_event(program["name"], "restart", f"사용자: {session.get('user')}, PID: {pid}")
         webhook_url = program.get("webhook_url")  # 프로그램별 웹훅 URL
-        send_webhook_notification(program["name"], "restart", f"사용자: {session.get('user')}", "info", webhook_url)
+        send_webhook_notification(program["name"], "restart", f"사용자: {session.get('user')}, PID: {pid}", "info", webhook_url)
     
-    return jsonify({"success": success, "message": message})
+    return jsonify({"success": success, "message": message, "pid": pid})
 
 
 @programs_api.route("/<int:program_id>", methods=["PUT"])
@@ -164,8 +182,24 @@ def status():
     status_list = []
     
     for idx, program in enumerate(programs_data["programs"]):
-        # 프로세스 상태 및 리소스 사용량 조회
-        stats = get_process_stats(program["path"])
+        # 저장된 PID 가져오기
+        saved_pid = program.get("pid")
+        
+        # 프로세스 상태 및 리소스 사용량 조회 (PID 우선)
+        stats = get_process_stats(program["path"], pid=saved_pid)
+        
+        # PID가 변경되었으면 업데이트
+        if stats['running'] and stats['pid'] != saved_pid:
+            programs_data["programs"][idx]["pid"] = stats['pid']
+            save_json(PROGRAMS_JSON, programs_data)
+            print(f"🔄 [Status] PID 업데이트: {program['name']} -> {stats['pid']}")
+        
+        # PID가 없어졌으면 제거
+        if not stats['running'] and saved_pid:
+            if "pid" in programs_data["programs"][idx]:
+                del programs_data["programs"][idx]["pid"]
+                save_json(PROGRAMS_JSON, programs_data)
+                print(f"🗑️ [Status] PID 제거: {program['name']}")
         
         # 가동 시간 계산
         uptime_info = calculate_uptime(program["name"])
@@ -178,7 +212,8 @@ def status():
             "cpu_percent": stats['cpu_percent'],
             "memory_mb": stats['memory_mb'],
             "memory_percent": stats['memory_percent'],
-            "uptime": uptime_info['uptime_formatted']
+            "uptime": uptime_info['uptime_formatted'],
+            "pid": stats['pid']
         })
     
     # 상태 데이터를 JSON 파일에도 저장

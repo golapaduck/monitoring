@@ -65,9 +65,10 @@ class ProcessMonitor:
             program_name = program["name"]
             program_path = program["path"]
             webhook_url = program.get("webhook_url")
+            saved_pid = program.get("pid")
             
-            # 현재 실행 상태 확인
-            is_running = get_process_status(program_path)
+            # 현재 실행 상태 확인 (PID 우선)
+            is_running, current_pid = get_process_status(program_path, pid=saved_pid)
             
             # 이전 상태와 비교
             was_running = self.last_status.get(program_name)
