@@ -112,38 +112,43 @@ def start(program_id):
 @programs_api.route("/<int:program_id>/stop", methods=["POST"])
 def stop(program_id):
     """프로그램 종료 API (관리자만)."""
-    if "user" not in session or session.get("role") != "admin":
-        return jsonify({"error": "Forbidden"}), 403
-    
-    program = get_program_by_id(program_id)
-    if not program:
-        return jsonify({"error": "Program not found"}), 404
-    
-    # 강제 종료 옵션 확인 (쿼리 파라미터 또는 JSON 바디)
-    force = request.args.get('force', 'false').lower() == 'true'
-    if request.is_json:
-        data = request.get_json()
-        force = data.get('force', force)
-    
-    success, message = stop_program(program["path"], force=force)
-    
-    print(f"🔍 [Programs API] stop_program 결과: success={success}, message={message}")
-    
-    # PID 제거
-    if success:
-        remove_program_pid(program_id)
-        print(f"🗑️ [Programs API] PID 제거: {program['name']}")
-    
-    # 로그 기록 및 웹훅 알림
-    if success:
-        stop_type = "강제 종료" if force else "종료"
-        db_log_event(program_id, "stop", f"사용자: {session.get('user')}, 타입: {stop_type}")
-        webhook_urls = program.get("webhook_urls")
-        send_webhook_notification(program["name"], "stop", f"사용자: {session.get('user')}, 타입: {stop_type}", "warning", webhook_urls)
-    else:
-        print(f"❌ [Programs API] 종료 실패: {message}")
-    
-    return jsonify({"success": success, "message": message})
+    try:
+        if "user" not in session or session.get("role") != "admin":
+            return jsonify({"error": "Forbidden"}), 403
+        
+        program = get_program_by_id(program_id)
+        if not program:
+            return jsonify({"error": "Program not found"}), 404
+        
+        # 강제 종료 옵션 확인 (쿼리 파라미터 또는 JSON 바디)
+        force = request.args.get('force', 'false').lower() == 'true'
+        if request.is_json:
+            try:
+                data = request.get_json()
+                force = data.get('force', force)
+            except:
+                pass  # JSON 파싱 실패 시 쿼리 파라미터 사용
+        
+        success, message = stop_program(program["path"], force=force)
+        
+        # PID 제거
+        if success:
+            remove_program_pid(program_id)
+            print(f"🗑️ [Programs API] PID 제거: {program['name']}")
+        
+        # 로그 기록 및 웹훅 알림
+        if success:
+            stop_type = "강제 종료" if force else "종료"
+            db_log_event(program_id, "stop", f"사용자: {session.get('user')}, 타입: {stop_type}")
+            webhook_urls = program.get("webhook_urls")
+            send_webhook_notification(program["name"], "stop", f"사용자: {session.get('user')}, 타입: {stop_type}", "warning", webhook_urls)
+        
+        return jsonify({"success": success, "message": message})
+    except Exception as e:
+        print(f"💥 [Programs API] stop API 예외 발생: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"서버 오류: {str(e)}"}), 500
 
 
 @programs_api.route("/<int:program_id>/restart", methods=["POST"])
