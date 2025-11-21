@@ -45,10 +45,19 @@ def login():
             session["role"] = user["role"]
             
             print(f"✅ [Login] 사용자 '{username}' 로그인 성공 (역할: {user['role']})")
+            
+            # React 프론트엔드에서 요청한 경우 JSON 응답
+            if request.accept_mimetypes.accept_json and not request.accept_mimetypes.accept_html:
+                return jsonify({"success": True, "user": {"username": username, "role": user["role"]}}), 200
+            
             return redirect(url_for("web.dashboard"))
         else:
             error = "아이디 또는 비밀번호가 올바르지 않습니다."
             print(f"❌ [Login] 로그인 실패: {username}")
+            
+            # React 프론트엔드에서 요청한 경우 JSON 응답
+            if request.accept_mimetypes.accept_json and not request.accept_mimetypes.accept_html:
+                return jsonify({"success": False, "error": error}), 401
     
     return render_template("login.html", error=error)
 

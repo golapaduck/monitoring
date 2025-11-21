@@ -22,7 +22,10 @@ export default function LoginPage({ onLogin }) {
       const response = await fetch('/login', {
         method: 'POST',
         body: formData,
-        credentials: 'include'
+        credentials: 'include',
+        headers: {
+          'Accept': 'application/json'
+        }
       })
 
       if (response.ok) {
