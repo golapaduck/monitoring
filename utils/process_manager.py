@@ -88,8 +88,52 @@ def start_program(program_path, args=""):
         return False, f"실행 실패: {str(e)}", None
 
 
-def stop_program(program_path):
+def stop_program(program_path, force=False):
     """프로그램 종료.
+    
+    Args:
+        program_path: 프로그램 실행 파일 경로
+        force: True이면 자식 프로세스까지 강제 종료 (taskkill /T 사용)
+        
+    Returns:
+        tuple: (성공 여부, 메시지)
+    """
+    try:
+        program_name = Path(program_path).name
+        
+        if force:
+            # Windows taskkill 명령어로 자식 프로세스까지 강제 종료
+            # /F: 강제 종료, /T: 자식 프로세스 트리 종료, /IM: 이미지 이름
+            try:
+                result = subprocess.run(
+                    ["taskkill", "/F", "/T", "/IM", program_name],
+                    capture_output=True,
+                    text=True,
+                    timeout=10
+                )
+                
+                if result.returncode == 0:
+                    print(f"✅ [Process Manager] 강제 종료 성공: {program_name}")
+                    return True, "프로그램과 모든 자식 프로세스가 강제 종료되었습니다."
+                else:
+                    # taskkill 실패 시 psutil로 시도
+                    print(f"⚠️ [Process Manager] taskkill 실패, psutil로 재시도: {program_name}")
+                    return _stop_with_psutil(program_path)
+            except subprocess.TimeoutExpired:
+                return False, "종료 명령 시간 초과"
+            except Exception as e:
+                print(f"⚠️ [Process Manager] taskkill 오류, psutil로 재시도: {str(e)}")
+                return _stop_with_psutil(program_path)
+        else:
+            # 일반 종료 (psutil 사용)
+            return _stop_with_psutil(program_path)
+            
+    except Exception as e:
+        return False, f"종료 실패: {str(e)}"
+
+
+def _stop_with_psutil(program_path):
+    """psutil을 사용한 프로그램 종료 (내부 함수).
     
     Args:
         program_path: 프로그램 실행 파일 경로

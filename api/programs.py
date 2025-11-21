@@ -109,7 +109,14 @@ def stop(program_id):
         return jsonify({"error": "Program not found"}), 404
     
     program = programs_data["programs"][program_id]
-    success, message = stop_program(program["path"])
+    
+    # 강제 종료 옵션 확인 (쿼리 파라미터 또는 JSON 바디)
+    force = request.args.get('force', 'false').lower() == 'true'
+    if request.is_json:
+        data = request.get_json()
+        force = data.get('force', force)
+    
+    success, message = stop_program(program["path"], force=force)
     
     # PID 제거
     if success and "pid" in programs_data["programs"][program_id]:
@@ -119,9 +126,10 @@ def stop(program_id):
     
     # 로그 기록 및 웹훅 알림
     if success:
-        log_program_event(program["name"], "stop", f"사용자: {session.get('user')}")
+        stop_type = "강제 종료" if force else "종료"
+        log_program_event(program["name"], "stop", f"사용자: {session.get('user')}, 타입: {stop_type}")
         webhook_url = program.get("webhook_url")  # 프로그램별 웹훅 URL
-        send_webhook_notification(program["name"], "stop", f"사용자: {session.get('user')}", "warning", webhook_url)
+        send_webhook_notification(program["name"], "stop", f"사용자: {session.get('user')}, 타입: {stop_type}", "warning", webhook_url)
     
     return jsonify({"success": success, "message": message})
 
