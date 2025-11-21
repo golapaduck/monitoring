@@ -74,15 +74,10 @@ class ProcessMonitor:
             # 이전 상태와 비교
             was_running = self.last_status.get(program_name)
             
-            # 디버그 로그
-            if was_running is not None:
-                print(f"🔍 [Process Monitor] {program_name}: was_running={was_running}, is_running={is_running}")
-            
             # 상태 변화 감지
             if was_running is not None:  # 첫 체크가 아닌 경우
                 if was_running and not is_running:
                     # 프로세스가 예기치 않게 종료됨
-                    print(f"💥 [Process Monitor] 예기치 않은 종료 감지: {program_name}")
                     self._handle_unexpected_termination(program_name, webhook_urls)
             
             # 현재 상태 저장
