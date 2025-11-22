@@ -13,7 +13,7 @@ import io
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_buffering=True)
 sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', line_buffering=True)
 
-from flask import Flask, send_from_directory
+from flask import Flask, send_from_directory, jsonify
 from flask_compress import Compress
 from config import Config, USERS_JSON, PROGRAMS_JSON, STATUS_JSON
 from utils.data_manager import init_default_data
