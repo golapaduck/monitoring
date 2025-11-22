@@ -78,3 +78,6 @@ yarn-error.log*
 /serve.py
 /package.json
 /package-lock.json
+
+# 문서
+/doc
