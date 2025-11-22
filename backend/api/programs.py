@@ -168,18 +168,22 @@ def stop(program_id):
         loader = get_plugin_loader()
         palworld_plugin = loader.get_plugin_instance(program_id, "palworld")
         
+        shutdown_time = None  # 종료 대기 시간
+        
         if palworld_plugin and not force:
             # 펠월드 API를 사용하여 정상 종료
-            print(f"🎮 [Programs API] 펠월드 API를 사용하여 서버 종료: {program['name']}")
+            shutdown_wait_time = 30  # 기본 30초
+            print(f"🎮 [Programs API] 펠월드 API를 사용하여 서버 종료: {program['name']} (대기 시간: {shutdown_wait_time}초)")
             result = palworld_plugin.execute_action("shutdown_server", {
-                "waittime": "30",
+                "waittime": str(shutdown_wait_time),
                 "message": "관리자가 서버를 종료합니다"
             })
             
             if result.get("success"):
                 print(f"✅ [Programs API] 펠월드 API 종료 성공: {program['name']}")
                 success = True
-                message = "펠월드 API를 사용하여 서버를 종료했습니다"
+                message = f"펠월드 API를 사용하여 서버를 종료했습니다 (약 {shutdown_wait_time}초 소요)"
+                shutdown_time = shutdown_wait_time
             else:
                 # API 실패 시 일반 종료로 폴백
                 print(f"⚠️ [Programs API] 펠월드 API 종료 실패, 일반 종료로 폴백: {result.get('message')}")
@@ -203,7 +207,11 @@ def stop(program_id):
             # 즉시 상태 확인 요청 (빠른 감지)
             request_immediate_check()
         
-        return jsonify({"success": success, "message": message})
+        response = {"success": success, "message": message}
+        if shutdown_time is not None:
+            response["shutdown_time"] = shutdown_time
+        
+        return jsonify(response)
     except Exception as e:
         print(f"💥 [Programs API] stop API 예외 발생: {str(e)}")
         import traceback
