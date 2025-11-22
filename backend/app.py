@@ -191,39 +191,11 @@ def handle_internal_error(error):
         "error_code": "INTERNAL_SERVER_ERROR"
     }), 500
 
-# === 프론트엔드 빌드 파일 서빙 (프로덕션 모드) ===
-# 프론트엔드 빌드 디렉토리 경로 (루트의 dist 폴더)
-FRONTEND_DIST = Path(__file__).parent.parent / "dist"
-
-if FRONTEND_DIST.exists() and os.getenv("PRODUCTION", "False").lower() == "true":
-    print(f"[Production Mode] 프론트엔드 빌드 파일 서빙: {FRONTEND_DIST}")
-    
-    @app.route('/', defaults={'path': ''})
-    @app.route('/<path:path>')
-    def serve_frontend(path):
-        """프론트엔드 빌드 파일 서빙 (SPA 라우팅 지원)."""
-        # API 요청은 제외
-        if path.startswith('api/'):
-            return {"error": "Not Found"}, 404
-        
-        # Blueprint 라우트는 제외 (login, logout 등)
-        if path in ['login', 'logout']:
-            return {"error": "Not Found"}, 404
-        
-        # 파일이 존재하면 해당 파일 반환
-        if path and (FRONTEND_DIST / path).exists():
-            return send_from_directory(FRONTEND_DIST, path)
-        
-        # 그 외에는 index.html 반환 (SPA 라우팅)
-        return send_from_directory(FRONTEND_DIST, 'index.html')
-else:
-    print("[Development Mode] 프론트엔드는 별도 개발 서버(Vite)에서 실행됩니다")
-
 # === 성능 모니터링 API 등록 ===
 from utils.performance_monitor import create_performance_api
 create_performance_api(app)
 
-# === Blueprint 등록 ===
+# === Blueprint 등록 (프론트엔드 서빙보다 먼저!) ===
 
 # 웹 페이지 라우트 등록
 from routes.web import web_bp
@@ -252,6 +224,31 @@ app.register_blueprint(plugins_api)
 app.register_blueprint(system_api)
 app.register_blueprint(cache_stats_api)
 app.register_blueprint(health_api)
+
+# === 프론트엔드 빌드 파일 서빙 (프로덕션 모드) ===
+# Blueprint 등록 후에 serve_frontend 등록 (라우트 우선순위)
+FRONTEND_DIST = Path(__file__).parent.parent / "dist"
+
+if FRONTEND_DIST.exists() and os.getenv("PRODUCTION", "False").lower() == "true":
+    print(f"[Production Mode] 프론트엔드 빌드 파일 서빙: {FRONTEND_DIST}")
+    
+    @app.route('/', defaults={'path': ''})
+    @app.route('/<path:path>')
+    def serve_frontend(path):
+        """프론트엔드 빌드 파일 서빙 (SPA 라우팅 지원)."""
+        # API 요청은 제외 (Blueprint로 넘김)
+        if path.startswith('api/'):
+            return {"error": "Not Found"}, 404
+        
+        # 정적 파일이 존재하면 해당 파일 반환
+        if path and (FRONTEND_DIST / path).exists():
+            return send_from_directory(FRONTEND_DIST, path)
+        
+        # 그 외 모든 경로는 index.html 반환 (SPA 라우팅)
+        # React Router가 /login, /dashboard, /program/:id 등을 처리
+        return send_from_directory(FRONTEND_DIST, 'index.html')
+else:
+    print("[Development Mode] 프론트엔드는 별도 개발 서버(Vite)에서 실행됩니다")
 
 
 if __name__ == "__main__":
