@@ -191,6 +191,30 @@ def handle_internal_error(error):
         "error_code": "INTERNAL_SERVER_ERROR"
     }), 500
 
+# === 프론트엔드 빌드 파일 서빙 (프로덕션 모드) ===
+# 프론트엔드 빌드 디렉토리 경로
+FRONTEND_DIST = Path(__file__).parent.parent / "frontend" / "dist"
+
+if FRONTEND_DIST.exists() and os.getenv("PRODUCTION", "False").lower() == "true":
+    print(f"[Production Mode] 프론트엔드 빌드 파일 서빙: {FRONTEND_DIST}")
+    
+    @app.route('/', defaults={'path': ''})
+    @app.route('/<path:path>')
+    def serve_frontend(path):
+        """프론트엔드 빌드 파일 서빙 (SPA 라우팅 지원)."""
+        # API 요청은 제외
+        if path.startswith('api/'):
+            return {"error": "Not Found"}, 404
+        
+        # 파일이 존재하면 해당 파일 반환
+        if path and (FRONTEND_DIST / path).exists():
+            return send_from_directory(FRONTEND_DIST, path)
+        
+        # 그 외에는 index.html 반환 (SPA 라우팅)
+        return send_from_directory(FRONTEND_DIST, 'index.html')
+else:
+    print("[Development Mode] 프론트엔드는 별도 개발 서버(Vite)에서 실행됩니다")
+
 # === 성능 모니터링 API 등록 ===
 from utils.performance_monitor import create_performance_api
 create_performance_api(app)
@@ -224,30 +248,6 @@ app.register_blueprint(plugins_api)
 app.register_blueprint(system_api)
 app.register_blueprint(cache_stats_api)
 app.register_blueprint(health_api)
-
-# === 프론트엔드 빌드 파일 서빙 (프로덕션 모드) ===
-# 프론트엔드 빌드 디렉토리 경로
-FRONTEND_DIST = Path(__file__).parent.parent / "frontend" / "dist"
-
-if FRONTEND_DIST.exists() and os.getenv("PRODUCTION", "False").lower() == "true":
-    print(f"[Production Mode] 프론트엔드 빌드 파일 서빙: {FRONTEND_DIST}")
-    
-    @app.route('/', defaults={'path': ''})
-    @app.route('/<path:path>')
-    def serve_frontend(path):
-        """프론트엔드 빌드 파일 서빙 (SPA 라우팅 지원)."""
-        # API 요청은 제외
-        if path.startswith('api/'):
-            return {"error": "Not Found"}, 404
-        
-        # 파일이 존재하면 해당 파일 반환
-        if path and (FRONTEND_DIST / path).exists():
-            return send_from_directory(FRONTEND_DIST, path)
-        
-        # 그 외에는 index.html 반환 (SPA 라우팅)
-        return send_from_directory(FRONTEND_DIST, 'index.html')
-else:
-    print("[Development Mode] 프론트엔드는 별도 개발 서버(Vite)에서 실행됩니다")
 
 
 if __name__ == "__main__":
