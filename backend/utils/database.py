@@ -36,6 +36,15 @@ def init_database():
     conn = get_connection()
     cursor = conn.cursor()
     
+    # 게임 서버 환경: SQLite WAL 모드 활성화 (동시성 개선)
+    cursor.execute("PRAGMA journal_mode = WAL")
+    cursor.execute("PRAGMA synchronous = NORMAL")  # 성능 향상
+    cursor.execute("PRAGMA cache_size = 10000")  # 캐시 크기 증가 (10MB)
+    cursor.execute("PRAGMA wal_autocheckpoint = 1000")  # WAL 파일 크기 제한
+    cursor.execute("PRAGMA temp_store = MEMORY")  # 임시 테이블 메모리 사용
+    
+    logger.info("✅ [Database] WAL 모드 활성화 (게임 서버 환경 최적화)")
+    
     # 사용자 테이블
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (

@@ -16,7 +16,8 @@ class ProcessMonitor:
         """프로세스 모니터 초기화."""
         self.running = False
         self.thread = None
-        self.check_interval = 3  # 3초 간격으로 상태 확인 (Windows PC 최적화)
+        self.check_interval = 5  # 5초 간격으로 상태 확인 (게임 서버 환경 최적화)
+        self.base_interval = 5  # 기본 간격
         self.last_status = {}  # {program_name: running_status}
         self.recent_stops = set()  # 최근 의도적으로 종료된 프로그램 이름
         self.pending_check = False  # 즉시 체크 요청 플래그
@@ -47,17 +48,34 @@ class ProcessMonitor:
                 pass  # 종료 시 발생하는 예외 무시
         print("🛑 [Process Monitor] 프로세스 모니터링 중지")
     
+    def _get_adaptive_interval(self):
+        """CPU 사용률에 따라 동적으로 모니터링 간격 조정 (게임 서버 환경)."""
+        try:
+            cpu_usage = psutil.cpu_percent(interval=0.5)
+            
+            if cpu_usage > 90:
+                return 10  # CPU 매우 높음 → 10초 간격
+            elif cpu_usage > 70:
+                return 7   # CPU 높음 → 7초 간격
+            else:
+                return self.base_interval  # CPU 정상 → 기본 간격
+        except Exception:
+            return self.base_interval
+    
     def _monitor_loop(self):
         """모니터링 루프 (백그라운드 스레드)."""
         metric_collection_counter = 0
         
         while self.running:
             try:
+                # 동적 간격 조정 (게임 서버 환경)
+                self.check_interval = self._get_adaptive_interval()
+                
                 self._check_processes()
                 
-                # 1초마다 메트릭 주기적 수집 (차트 업데이트 부드럽게)
+                # 2초마다 메트릭 주기적 수집 (게임 서버 환경 최적화)
                 metric_collection_counter += 1
-                if metric_collection_counter >= 1:  # 1초마다
+                if metric_collection_counter >= 2:  # 2초마다
                     self._collect_metrics_periodic()
                     metric_collection_counter = 0
                     
@@ -272,8 +290,14 @@ class ProcessMonitor:
             memory_info = process.memory_info()
             memory_mb = memory_info.rss / (1024 * 1024)  # bytes to MB
             
-            # 데이터베이스에 기록
-            record_resource_usage(program_id, cpu_percent, memory_mb)
+            # 메트릭 버퍼에 추가 (배치 쓰기 - 게임 서버 환경)
+            try:
+                from utils.metric_buffer import get_metric_buffer
+                buffer = get_metric_buffer()
+                buffer.add(program_id, cpu_percent, memory_mb)
+            except Exception:
+                # 버퍼 실패 시 직접 저장
+                record_resource_usage(program_id, cpu_percent, memory_mb)
             
             # 웹소켓으로 리소스 업데이트 전송
             emit_resource_update(program_id, {

@@ -32,6 +32,15 @@ app.config.from_object(Config)
 # 응답 압축 활성화 (gzip)
 Compress(app)
 
+# 게임 서버 환경: CPU 우선순위 낮추기
+import psutil
+try:
+    current_process = psutil.Process()
+    current_process.nice(psutil.BELOW_NORMAL_PRIORITY_CLASS)
+    print("✅ [Game Server Mode] 모니터링 프로세스 우선순위 낮춤 (게임 서버 우선)")
+except Exception as e:
+    print(f"⚠️ [Game Server Mode] 우선순위 설정 실패: {str(e)}")
+
 # Rate Limiter 초기화
 from utils.rate_limiter import init_limiter
 init_limiter(app)
@@ -102,11 +111,22 @@ from utils.log_rotation import get_log_rotation
 log_rotation = get_log_rotation()
 log_rotation.start()
 
-# 프로세스 모니터 시작 (3초 간격)
+# 프로세스 모니터 시작 (5초 간격 - 게임 서버 환경)
 # 항상 실행 (DEBUG 모드에서도 모니터링 필요)
-start_process_monitor(check_interval=3)
+start_process_monitor(check_interval=5)
 # 앱 종료 시 모니터 중지
 atexit.register(stop_process_monitor)
+
+# 메트릭 버퍼 시작 (배치 쓰기 - 게임 서버 환경)
+from utils.metric_buffer import get_metric_buffer, stop_metric_buffer
+metric_buffer = get_metric_buffer()
+atexit.register(stop_metric_buffer)
+print("✅ [Game Server Mode] 메트릭 버퍼링 시작 (디스크 I/O 최적화)")
+
+# 메모리 관리자 초기화 (게임 서버 환경)
+from utils.memory_manager import get_memory_manager
+memory_manager = get_memory_manager()
+print("✅ [Game Server Mode] 메모리 관리자 초기화")
 
 # === 에러 핸들러 등록 ===
 from utils.exceptions import MonitoringError

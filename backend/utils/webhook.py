@@ -5,9 +5,16 @@ import json
 import threading
 from datetime import datetime
 from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor
+import logging
 from utils.data_manager import load_json, save_json
 from config import DATA_DIR
 
+logger = logging.getLogger(__name__)
+
+# 웹훅 전송용 스레드 풀 (게임 서버 환경: 최소 워커)
+_webhook_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="Webhook")
+_webhook_lock = threading.Lock()
 
 # 웹훅 설정 파일 경로
 WEBHOOK_CONFIG_JSON = DATA_DIR / "webhook_config.json"
