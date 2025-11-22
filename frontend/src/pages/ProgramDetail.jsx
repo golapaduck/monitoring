@@ -55,6 +55,7 @@ export default function ProgramDetail() {
   }, [loadProgram])
 
   const handleToggle = useCallback(async () => {
+    if (!program) return
     setActionLoading(true)
     try {
       if (program.running) {
@@ -62,15 +63,16 @@ export default function ProgramDetail() {
       } else {
         await startProgram(program.id)
       }
-      await loadProgram()
+      // loadProgram은 useEffect에서 자동으로 호출됨 (5초 간격)
     } catch (error) {
       alert(`작업 실패: ${error.message}`)
     } finally {
       setActionLoading(false)
     }
-  }, [program.id, program.running])
+  }, [program])
 
   const handleDelete = useCallback(async () => {
+    if (!program) return
     if (!confirm('이 프로그램을 삭제하시겠습니까?')) return
 
     setActionLoading(true)
@@ -82,7 +84,7 @@ export default function ProgramDetail() {
     } finally {
       setActionLoading(false)
     }
-  }, [program.id, navigate])
+  }, [program, navigate])
 
   if (loading) {
     return (
