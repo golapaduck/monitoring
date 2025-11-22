@@ -12,14 +12,11 @@ from utils.websocket import emit_program_status, emit_resource_update
 class ProcessMonitor:
     """프로세스 상태를 모니터링하고 예기치 않은 종료를 감지하는 클래스."""
     
-    def __init__(self, check_interval=1):  # 3초 → 1초로 단축 (더 빠른 실시간 감지)
-        """
-        Args:
-            check_interval: 상태 확인 간격 (초, 기본값: 1초)
-        """
-        self.check_interval = check_interval
+    def __init__(self):
+        """프로세스 모니터 초기화."""
         self.running = False
         self.thread = None
+        self.check_interval = 3  # 3초 간격으로 상태 확인 (Windows PC 최적화)
         self.last_status = {}  # {program_name: running_status}
         self.recent_stops = set()  # 최근 의도적으로 종료된 프로그램 이름
         self.pending_check = False  # 즉시 체크 요청 플래그

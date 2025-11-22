@@ -62,14 +62,14 @@ from utils.db_pool import init_pool
 init_database()
 migrate_from_json()
 
-# DB 연결 풀 초기화 (20개 연결 - 동시성 개선)
-init_pool(str(DB_PATH), pool_size=20)
-print("[Database] DB 연결 풀 초기화 완료 (20개 연결)")
+# DB 연결 풀 초기화 (5개 연결 - Windows PC 최적화)
+init_pool(str(DB_PATH), pool_size=5)
+print("[Database] DB 연결 풀 초기화 완료 (5개 연결)")
 
-# 작업 큐 초기화 (8개 워커 - 동시성 개선)
+# 작업 큐 초기화 (2개 워커 - Windows PC 최적화)
 from utils.job_queue import init_job_queue
-init_job_queue(max_workers=8)
-print("[JobQueue] 작업 큐 초기화 완료 (8개 워커)")
+init_job_queue(max_workers=2)
+print("[JobQueue] 작업 큐 초기화 완료 (2개 워커)")
 
 # PowerShell 에이전트 초기화
 from utils.powershell_agent import init_powershell_agent
