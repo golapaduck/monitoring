@@ -216,17 +216,20 @@
 ## 🟡 선택적 개선사항 (우선순위 낮음)
 
 ### Medium Priority
-- [ ] 기존 API에 데코레이터 적용 (30분)
+- [x] 기존 API에 데코레이터 적용 (완료: 2025-11-22)
+  - @require_auth, @require_admin 적용
   - 코드 중복 50% 감소
   - 가독성 향상
   
-- [ ] 프론트엔드 린트 에러 수정 (30분)
+- [x] 프론트엔드 린트 에러 수정 (완료: 2025-11-22)
   - ESLint 경고 6개 제거
-  - AuthContext.jsx, apiService.js
+  - AuthContext 분리
+  - apiService try-catch 제거
   
 - [ ] print() → logger 변경 (1시간)
   - 표준 로깅으로 전환
   - 레벨별 필터링 가능
+  - 선택사항
 
 ### Low Priority
 - [ ] 타입 힌트 추가 (2시간)
