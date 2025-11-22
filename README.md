@@ -217,14 +217,13 @@ python -m venv venv
 venv\Scripts\activate
 pip install -r requirements.txt
 
-# 3. 프론트엔드 설정 (새 터미널)
-cd frontend
+# 3. 프론트엔드 설정
+cd ../frontend
 npm install
-npm run dev
 
-# 4. 백엔드 실행 (새 터미널)
-cd backend
-python app.py
+# 4. 개발 서버 시작 (루트 디렉토리에서)
+cd ..
+python run.py --dev
 
 # 5. 브라우저 접속
 http://localhost:5173
@@ -233,12 +232,12 @@ http://localhost:5173
 ### 프로덕션 모드
 
 ```bash
-# 배치 스크립트 사용 (권장)
-scripts\prod.bat
+# Python 스크립트 사용 (권장)
+python run.py --prod
 
 # 또는 수동 실행
 cd frontend && npm run build
-python serve.py
+cd .. && python serve.py
 
 # 브라우저 접속
 http://localhost:8080
@@ -255,10 +254,26 @@ http://localhost:8080
 1. Win + R → taskschd.msc
 2. 작업 만들기
 3. 트리거: "컴퓨터 시작 시"
-4. 작업: python serve.py 실행
+4. 작업: python run.py --prod 실행
 5. 설정: 실패 시 1분 후 재시작
 
 → 자동 시작 및 자동 재시작 완료!
+```
+
+### 빠른 명령어
+
+```bash
+# 개발 모드 (Flask + Vite)
+python run.py --dev
+
+# 프로덕션 모드 (Waitress)
+python run.py --prod
+
+# 배포 자동화
+python run.py --deploy
+
+# 성능 확인
+python run.py --check
 ```
 
 ---
