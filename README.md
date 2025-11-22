@@ -46,7 +46,7 @@ copy .env.example .env
 
 **프론트엔드 (Vite):**
 - `VITE_PORT`: Vite 개발 서버 포트 (기본: 5173)
-- `VITE_BACKEND_URL`: 백엔드 API URL (기본: http://localhost:8080)
+- 백엔드 URL은 `FLASK_PORT`를 자동으로 사용합니다
 
 ### 3. 개발 모드 실행
 

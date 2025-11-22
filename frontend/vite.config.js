@@ -10,9 +10,10 @@ export default defineConfig(({ mode }) => {
   // 부모 디렉토리(백엔드)의 .env 파일 로드
   const env = loadEnv(mode, path.resolve(__dirname, '..'), '')
   
-  // 환경 변수에서 포트와 백엔드 URL 가져오기
+  // 환경 변수에서 포트 가져오기
   const vitePort = parseInt(env.VITE_PORT || '5173')
-  const backendUrl = env.VITE_BACKEND_URL || `http://localhost:${env.FLASK_PORT || '8080'}`
+  const backendPort = env.FLASK_PORT || '8080'
+  const backendUrl = `http://localhost:${backendPort}`
 
   return {
     plugins: [react()],
