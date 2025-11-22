@@ -80,6 +80,32 @@ start_process_monitor(check_interval=10)
 # 앱 종료 시 모니터 중지
 atexit.register(stop_process_monitor)
 
+# === 에러 핸들러 등록 ===
+from utils.exceptions import MonitoringError
+
+@app.errorhandler(MonitoringError)
+def handle_monitoring_error(error):
+    """커스텀 예외 처리."""
+    return jsonify(error.to_dict()), error.status_code
+
+@app.errorhandler(404)
+def handle_not_found(error):
+    """404 Not Found 처리."""
+    return jsonify({
+        "success": False,
+        "error": "요청한 리소스를 찾을 수 없습니다",
+        "error_code": "NOT_FOUND"
+    }), 404
+
+@app.errorhandler(500)
+def handle_internal_error(error):
+    """500 Internal Server Error 처리."""
+    return jsonify({
+        "success": False,
+        "error": "서버 내부 오류가 발생했습니다",
+        "error_code": "INTERNAL_SERVER_ERROR"
+    }), 500
+
 # === Blueprint 등록 ===
 
 # 웹 페이지 라우트 등록

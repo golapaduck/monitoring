@@ -43,14 +43,52 @@ def get_status():
 # 향후 확장 가능한 엔드포인트들
 @status_api.route("/system", methods=["GET"])
 def get_system_status():
-    """시스템 리소스 상태 조회 (CPU, 메모리, 디스크 등) - 향후 구현."""
+    """시스템 리소스 상태 조회 (CPU, 메모리, 디스크 등)."""
     if "user" not in session:
         return jsonify({"error": "Unauthorized"}), 401
     
-    # TODO: psutil을 사용해서 시스템 리소스 정보 수집
+    import psutil
+    
+    # CPU 정보
+    cpu_percent = psutil.cpu_percent(interval=1)
+    cpu_count = psutil.cpu_count()
+    
+    # 메모리 정보
+    memory = psutil.virtual_memory()
+    memory_total_gb = memory.total / (1024 ** 3)
+    memory_used_gb = memory.used / (1024 ** 3)
+    memory_available_gb = memory.available / (1024 ** 3)
+    
+    # 디스크 정보
+    disk = psutil.disk_usage('/')
+    disk_total_gb = disk.total / (1024 ** 3)
+    disk_used_gb = disk.used / (1024 ** 3)
+    disk_free_gb = disk.free / (1024 ** 3)
+    
+    # 네트워크 정보
+    net_io = psutil.net_io_counters()
+    
     return jsonify({
-        "cpu_percent": 0,
-        "memory_percent": 0,
-        "disk_percent": 0,
-        "message": "Not implemented yet"
+        "cpu": {
+            "percent": round(cpu_percent, 2),
+            "count": cpu_count
+        },
+        "memory": {
+            "percent": round(memory.percent, 2),
+            "total_gb": round(memory_total_gb, 2),
+            "used_gb": round(memory_used_gb, 2),
+            "available_gb": round(memory_available_gb, 2)
+        },
+        "disk": {
+            "percent": round(disk.percent, 2),
+            "total_gb": round(disk_total_gb, 2),
+            "used_gb": round(disk_used_gb, 2),
+            "free_gb": round(disk_free_gb, 2)
+        },
+        "network": {
+            "bytes_sent": net_io.bytes_sent,
+            "bytes_recv": net_io.bytes_recv,
+            "packets_sent": net_io.packets_sent,
+            "packets_recv": net_io.packets_recv
+        }
     })
