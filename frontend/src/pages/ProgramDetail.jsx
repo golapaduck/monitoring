@@ -254,6 +254,16 @@ export default function ProgramDetail() {
               리소스 모니터링
             </button>
             <button
+              onClick={() => setActiveTab('control')}
+              className={`px-4 py-2 font-medium transition-colors ${
+                activeTab === 'control'
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              조작
+            </button>
+            <button
               onClick={() => setActiveTab('plugins')}
               className={`px-4 py-2 font-medium transition-colors ${
                 activeTab === 'plugins'
@@ -304,6 +314,21 @@ export default function ProgramDetail() {
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">리소스 사용량</h2>
             <ResourceChart programId={program.id} />
+          </div>
+        )}
+
+        {activeTab === 'control' && (
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">서버 조작</h2>
+            <p className="text-gray-500 mb-4">
+              Palworld, Minecraft 등의 게임 서버를 조작할 수 있습니다.
+              플러그인 탭에서 RCON 또는 Palworld REST API 플러그인을 설정한 후 사용하세요.
+            </p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm text-blue-800">
+                💡 <strong>팁:</strong> 플러그인 탭에서 플러그인을 설정하면 여기서 빠른 액션을 실행할 수 있습니다.
+              </p>
+            </div>
           </div>
         )}
 
