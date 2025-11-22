@@ -214,6 +214,22 @@ def init_database():
     """)
     
     conn.commit()
+    
+    # Graceful Shutdown 컬럼 추가 (마이그레이션)
+    try:
+        cursor.execute("""
+            ALTER TABLE programs ADD COLUMN shutdown_start INTEGER DEFAULT NULL
+        """)
+        cursor.execute("""
+            ALTER TABLE programs ADD COLUMN shutdown_end INTEGER DEFAULT NULL
+        """)
+        conn.commit()
+        print("[Database] Graceful Shutdown 컬럼 추가 완료")
+    except Exception as e:
+        # 이미 컬럼이 존재하는 경우 무시
+        if "duplicate column name" not in str(e).lower():
+            print(f"[Database] Graceful Shutdown 컬럼 추가 실패: {e}")
+    
     conn.close()
     
     print("[Database] 데이터베이스 초기화 완료 (인덱스 포함)")
@@ -455,6 +471,42 @@ def remove_program_pid(program_id):
     cursor = conn.cursor()
     cursor.execute("""
         UPDATE programs SET pid = NULL WHERE id = ?
+    """, (program_id,))
+    conn.commit()
+    conn.close()
+
+
+def set_graceful_shutdown(program_id, shutdown_seconds):
+    """Graceful Shutdown 상태 설정.
+    
+    Args:
+        program_id: 프로그램 ID
+        shutdown_seconds: 종료 대기 시간 (초)
+    """
+    import time
+    shutdown_start = int(time.time())
+    shutdown_end = shutdown_start + shutdown_seconds
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE programs 
+        SET shutdown_start = ?, shutdown_end = ?
+        WHERE id = ?
+    """, (shutdown_start, shutdown_end, program_id))
+    conn.commit()
+    conn.close()
+    print(f"⏱️ [Database] Graceful Shutdown 설정: 프로그램 {program_id} (종료 예정: {shutdown_seconds}초 후)")
+
+
+def clear_graceful_shutdown(program_id):
+    """Graceful Shutdown 상태 해제."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE programs 
+        SET shutdown_start = NULL, shutdown_end = NULL
+        WHERE id = ?
     """, (program_id,))
     conn.commit()
     conn.close()

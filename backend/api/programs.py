@@ -34,6 +34,8 @@ from utils.database import (
     delete_program as db_delete_program,
     update_program_pid,
     remove_program_pid,
+    set_graceful_shutdown,
+    clear_graceful_shutdown,
     log_program_event as db_log_event
 )
 from utils.process_monitor import mark_intentional_stop, request_immediate_check
@@ -191,6 +193,9 @@ def stop(program_id):
                 success = True
                 message = f"펠월드 API를 사용하여 서버를 종료했습니다 (약 {shutdown_wait_time}초 소요)"
                 shutdown_method = "Graceful Shutdown"
+                
+                # Graceful Shutdown 상태 저장
+                set_graceful_shutdown(program_id, shutdown_wait_time)
                 print(f"✅ [Programs API] 펠월드 Graceful Shutdown 성공: {program['name']}")
             else:
                 # API 실패 시 일반 종료로 폴백
@@ -202,8 +207,8 @@ def stop(program_id):
             success, message = stop_program(program["path"], force=force)
             shutdown_method = "강제 종료" if force else "일반 종료"
         
-        # PID 제거 (모든 경우에 즉시 제거)
-        if success:
+        # PID 제거 (Graceful Shutdown이 아닌 경우만)
+        if success and shutdown_method != "Graceful Shutdown":
             remove_program_pid(program_id)
             print(f"🗑️ [Programs API] PID 제거: {program['name']} (방법: {shutdown_method})")
         
@@ -382,33 +387,66 @@ def status():
     for program in programs:
         # 저장된 PID 가져오기
         saved_pid = program.get("pid")
+        shutdown_start = program.get("shutdown_start")
+        shutdown_end = program.get("shutdown_end")
         
         # 프로세스 상태 및 리소스 사용량 조회 (PID 우선)
         stats = get_process_stats(program["path"], pid=saved_pid)
         
+        # Graceful Shutdown 상태 확인
+        import time
+        current_time = int(time.time())
+        is_shutting_down = False
+        shutdown_remaining = 0
+        
+        if shutdown_start and shutdown_end:
+            if current_time < shutdown_end:
+                # 아직 종료 중
+                is_shutting_down = True
+                shutdown_remaining = shutdown_end - current_time
+            else:
+                # 종료 완료 - 상태 초기화
+                clear_graceful_shutdown(program['id'])
+                if saved_pid:
+                    remove_program_pid(program['id'])
+                    print(f"🗑️ [Status] Graceful Shutdown 완료 - PID 제거: {program['name']}")
+        
         # PID가 변경되었으면 업데이트
-        if stats['running'] and stats['pid'] != saved_pid:
+        if stats['running'] and stats['pid'] != saved_pid and not is_shutting_down:
             update_program_pid(program['id'], stats['pid'])
             print(f"🔄 [Status] PID 업데이트: {program['name']} -> {stats['pid']}")
         
-        # PID가 없어졌으면 제거
-        if not stats['running'] and saved_pid:
+        # PID가 없어졌으면 제거 (Graceful Shutdown이 아닌 경우만)
+        if not stats['running'] and saved_pid and not is_shutting_down:
             remove_program_pid(program['id'])
             print(f"🗑️ [Status] PID 제거: {program['name']}")
         
         # 가동 시간 계산
         uptime_info = calculate_uptime(program["name"])
         
+        # 상태 결정
+        if is_shutting_down:
+            status = "shutting_down"
+            status_text = f"종료 중 ({shutdown_remaining}초 남음)"
+        elif stats['running']:
+            status = "running"
+            status_text = "실행 중"
+        else:
+            status = "stopped"
+            status_text = "중지됨"
+        
         status_list.append({
             "id": program['id'],
             "name": program["name"],
             "running": stats['running'],
-            "status": "실행 중" if stats['running'] else "중지됨",
+            "status": status,
+            "status_text": status_text,
             "cpu_percent": stats['cpu_percent'],
             "memory_mb": stats['memory_mb'],
             "memory_percent": stats['memory_percent'],
             "uptime": uptime_info['uptime_formatted'],
-            "pid": stats['pid']
+            "pid": stats['pid'],
+            "shutdown_remaining": shutdown_remaining if is_shutting_down else None
         })
     
     # 상태 데이터를 JSON 파일에도 저장

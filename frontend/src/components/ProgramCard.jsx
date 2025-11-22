@@ -72,12 +72,16 @@ function ProgramCard({ program, onUpdate, user }) {
           {/* 상태 배지 */}
           <span
             className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-              program.running
+              program.status === 'shutting_down'
+                ? 'bg-yellow-100 text-yellow-800'
+                : program.running
                 ? 'bg-green-100 text-green-800'
                 : 'bg-red-100 text-red-800'
             }`}
           >
-            {program.running ? '● 실행 중' : '● 중지됨'}
+            {program.status === 'shutting_down' 
+              ? `⏳ ${program.status_text}` 
+              : program.running ? '● 실행 중' : '● 중지됨'}
           </span>
         </div>
       </div>
