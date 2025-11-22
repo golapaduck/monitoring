@@ -2,10 +2,11 @@
 
 import subprocess
 from pathlib import Path
+from typing import Tuple, Optional, Dict, List
 import psutil
 
 
-def get_process_status(program_path, pid=None):
+def get_process_status(program_path: str, pid: Optional[int] = None) -> Tuple[bool, Optional[int]]:
     """프로그램 경로로 프로세스 실행 여부 확인 (더블 체크: PID + 이름).
     
     PID와 프로세스 이름을 모두 검증하여 정확성을 높입니다.
@@ -64,7 +65,7 @@ def get_process_status(program_path, pid=None):
         return False, None
 
 
-def _find_by_name(program_name):
+def _find_by_name(program_name: str) -> Tuple[bool, Optional[int]]:
     """프로세스 이름으로 검색 (내부 헬퍼 함수).
     
     Args:
@@ -94,7 +95,7 @@ def _find_by_name(program_name):
         return False, None
 
 
-def get_programs_status_batch(programs):
+def get_programs_status_batch(programs: List[Dict]) -> List[Dict]:
     """여러 프로그램의 상태를 한 번에 조회 (배치 처리).
     
     psutil.process_iter()를 한 번만 호출하여 성능을 크게 향상시킵니다.
@@ -174,7 +175,7 @@ def get_programs_status_batch(programs):
     return result
 
 
-def start_program(program_path, args=""):
+def start_program(program_path: str, args: str = "") -> Tuple[bool, str, Optional[int]]:
     """프로그램 실행.
     
     Args:
@@ -209,7 +210,7 @@ def start_program(program_path, args=""):
         return False, f"실행 실패: {str(e)}", None
 
 
-def stop_program(program_path, force=False):
+def stop_program(program_path: str, force: bool = False) -> Tuple[bool, str]:
     """프로그램 종료.
     
     Args:
