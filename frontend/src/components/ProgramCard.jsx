@@ -1,25 +1,13 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Play, Square, RotateCw, AlertTriangle, ExternalLink } from 'lucide-react'
-import { startProgram, stopProgram, restartProgram } from '../lib/api'
+import { Play, Square, ExternalLink, AlertTriangle } from 'lucide-react'
+import { startProgram, stopProgram } from '../lib/api'
 
 export default function ProgramCard({ program, onUpdate, user }) {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [showForceStop, setShowForceStop] = useState(false)
   const isAdmin = user?.role === 'admin'
-
-  const handleStart = async () => {
-    setLoading(true)
-    try {
-      await startProgram(program.id)
-      onUpdate()
-    } catch (error) {
-      alert(`시작 실패: ${error.message}`)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleStop = async (force = false) => {
     setLoading(true)
@@ -34,13 +22,18 @@ export default function ProgramCard({ program, onUpdate, user }) {
     }
   }
 
-  const handleRestart = async () => {
+  const handleToggle = async () => {
     setLoading(true)
     try {
-      await restartProgram(program.id)
+      if (program.running) {
+        await stopProgram(program.id, false)
+      } else {
+        await startProgram(program.id)
+      }
+      setShowForceStop(false)
       onUpdate()
     } catch (error) {
-      alert(`재시작 실패: ${error.message}`)
+      alert(`작업 실패: ${error.message}`)
     } finally {
       setLoading(false)
     }
@@ -115,48 +108,56 @@ export default function ProgramCard({ program, onUpdate, user }) {
 
       {/* 액션 버튼 */}
       <div className="flex flex-wrap gap-2">
-        {!program.running ? (
-          isAdmin && (
-            <button
-              onClick={handleStart}
-              disabled={loading}
-              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-            >
-              <Play className="w-4 h-4" />
-              시작
-            </button>
-          )
-        ) : (
+        {isAdmin && (
           <>
+            {/* On/Off 토글 버튼 */}
             <button
-              onClick={() => setShowForceStop(!showForceStop)}
+              onClick={handleToggle}
               disabled={loading}
-              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+              className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
+                program.running
+                  ? 'bg-red-600 hover:bg-red-700 text-white'
+                  : 'bg-green-600 hover:bg-green-700 text-white'
+              }`}
             >
-              <Square className="w-4 h-4" />
-              종료
+              {program.running ? (
+                <>
+                  <Square className="w-4 h-4" />
+                  Off
+                </>
+              ) : (
+                <>
+                  <Play className="w-4 h-4" />
+                  On
+                </>
+              )}
             </button>
-            {showForceStop && (
-              <button
-                onClick={() => handleStop(true)}
-                disabled={loading}
-                className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-              >
-                <AlertTriangle className="w-4 h-4" />
-                강제 종료
-              </button>
+
+            {/* 강제 종료 버튼 (실행 중일 때만) */}
+            {program.running && (
+              <>
+                <button
+                  onClick={() => setShowForceStop(!showForceStop)}
+                  disabled={loading}
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                >
+                  <AlertTriangle className="w-4 h-4" />
+                  강제 종료
+                </button>
+                {showForceStop && (
+                  <button
+                    onClick={() => handleStop(true)}
+                    disabled={loading}
+                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-red-700 hover:bg-red-800 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                  >
+                    <AlertTriangle className="w-4 h-4" />
+                    확인
+                  </button>
+                )}
+              </>
             )}
           </>
         )}
-
-        <button
-          onClick={handleRestart}
-          disabled={loading}
-          className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-        >
-          <RotateCw className="w-4 h-4" />
-          재시작
-        </button>
       </div>
 
       {/* 로딩 오버레이 */}

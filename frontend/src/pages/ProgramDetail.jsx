@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Play, Square, RotateCw, Trash2, Edit, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, Play, Square, Trash2, Edit, AlertTriangle } from 'lucide-react'
 import axios from 'axios'
-import { startProgram, stopProgram, restartProgram, deleteProgram } from '../lib/api'
+import { startProgram, stopProgram, deleteProgram } from '../lib/api'
 import EditProgramModal from '../components/EditProgramModal'
 import ResourceChart from '../components/ResourceChart'
 import PluginTab from '../components/PluginTab'
@@ -45,18 +45,6 @@ export default function ProgramDetail() {
     }
   }
 
-  const handleStart = async () => {
-    setActionLoading(true)
-    try {
-      await startProgram(program.id)
-      await loadProgram()
-    } catch (error) {
-      alert(`시작 실패: ${error.message}`)
-    } finally {
-      setActionLoading(false)
-    }
-  }
-
   const handleStop = async (force = false) => {
     setActionLoading(true)
     try {
@@ -70,13 +58,18 @@ export default function ProgramDetail() {
     }
   }
 
-  const handleRestart = async () => {
+  const handleToggle = async () => {
     setActionLoading(true)
     try {
-      await restartProgram(program.id)
+      if (program.running) {
+        await stopProgram(program.id, false)
+      } else {
+        await startProgram(program.id)
+      }
       await loadProgram()
+      setShowForceStop(false)
     } catch (error) {
-      alert(`재시작 실패: ${error.message}`)
+      alert(`작업 실패: ${error.message}`)
     } finally {
       setActionLoading(false)
     }
@@ -154,34 +147,39 @@ export default function ProgramDetail() {
 
           {/* 액션 버튼 */}
           <div className="flex gap-2 mt-4">
-            {!program.running ? (
-              <button
-                onClick={handleStart}
-                disabled={actionLoading}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
-              >
-                <Play className="w-4 h-4" />
-                시작
-              </button>
-            ) : (
-              <>
-                <button
-                  onClick={() => setShowForceStop(!showForceStop)}
-                  disabled={actionLoading}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
-                >
+            {/* On/Off 토글 버튼 */}
+            <button
+              onClick={handleToggle}
+              disabled={actionLoading}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 ${
+                program.running
+                  ? 'bg-red-600 hover:bg-red-700 text-white'
+                  : 'bg-green-600 hover:bg-green-700 text-white'
+              }`}
+            >
+              {program.running ? (
+                <>
                   <Square className="w-4 h-4" />
-                  종료
-                </button>
-                <button
-                  onClick={handleRestart}
-                  disabled={actionLoading}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
-                >
-                  <RotateCw className="w-4 h-4" />
-                  재시작
-                </button>
-              </>
+                  Off
+                </>
+              ) : (
+                <>
+                  <Play className="w-4 h-4" />
+                  On
+                </>
+              )}
+            </button>
+
+            {/* 강제 종료 버튼 (실행 중일 때만) */}
+            {program.running && (
+              <button
+                onClick={() => setShowForceStop(!showForceStop)}
+                disabled={actionLoading}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+              >
+                <AlertTriangle className="w-4 h-4" />
+                강제 종료
+              </button>
             )}
             <button
               onClick={() => setShowEditModal(true)}
