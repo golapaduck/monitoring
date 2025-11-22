@@ -3,10 +3,14 @@
 import threading
 import time
 import psutil
+import logging
 from utils.process_manager import get_process_status
 from utils.webhook import send_webhook_notification
 from utils.database import get_all_programs, log_program_event, record_resource_usage
 from utils.websocket import emit_program_status, emit_resource_update
+
+# 로거 설정
+logger = logging.getLogger(__name__)
 
 
 class ProcessMonitor:
