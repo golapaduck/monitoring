@@ -156,7 +156,7 @@ def get_programs_status_batch(programs: List[Dict]) -> List[Dict]:
         print(f"⚠️ [Process Manager] PowerShell 프로세스 조회 오류: {str(e)}")
         running_processes = _get_processes_psutil()
     
-    # 2단계: 각 프로그램의 상태 확인
+    # 2단계: 각 프로그램의 상태 확인 및 리소스 정보 수집
     result = []
     for program in programs:
         try:
@@ -177,10 +177,26 @@ def get_programs_status_batch(programs: List[Dict]) -> List[Dict]:
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
                     pass
             
+            # 리소스 정보 수집 (CPU, 메모리)
+            cpu_percent = 0.0
+            memory_mb = 0.0
+            
+            if pid:
+                try:
+                    proc = psutil.Process(pid)
+                    if proc.is_running():
+                        cpu_percent = proc.cpu_percent(interval=0.1)
+                        memory_info = proc.memory_info()
+                        memory_mb = memory_info.rss / (1024 * 1024)  # 바이트 → MB
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    pass
+            
             result.append({
                 **program,
                 'running': pid is not None,
-                'pid': pid
+                'pid': pid,
+                'cpu_percent': cpu_percent,
+                'memory_mb': memory_mb
             })
             
         except Exception as e:
@@ -188,7 +204,9 @@ def get_programs_status_batch(programs: List[Dict]) -> List[Dict]:
             result.append({
                 **program,
                 'running': False,
-                'pid': None
+                'pid': None,
+                'cpu_percent': 0.0,
+                'memory_mb': 0.0
             })
     
     return result
