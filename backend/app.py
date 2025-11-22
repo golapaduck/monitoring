@@ -206,6 +206,10 @@ if FRONTEND_DIST.exists() and os.getenv("PRODUCTION", "False").lower() == "true"
         if path.startswith('api/'):
             return {"error": "Not Found"}, 404
         
+        # Blueprint 라우트는 제외 (login, logout 등)
+        if path in ['login', 'logout']:
+            return {"error": "Not Found"}, 404
+        
         # 파일이 존재하면 해당 파일 반환
         if path and (FRONTEND_DIST / path).exists():
             return send_from_directory(FRONTEND_DIST, path)
