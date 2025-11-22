@@ -30,16 +30,40 @@ export default function ProgramDetail() {
 
   const loadProgram = useCallback(async () => {
     try {
-      const response = await axios.get(`/api/programs`)
-      // API 응답이 {programs: [...]} 형태
-      const programs = response.data.programs || response.data
+      // 1단계: 프로그램 기본 정보 조회 (/api/programs)
+      const programsResponse = await axios.get(`/api/programs`)
+      const programs = programsResponse.data.programs || programsResponse.data
       const foundProgram = programs.find(p => p.id === parseInt(id))
       
-      if (foundProgram) {
-        setProgram(foundProgram)
-      } else {
+      if (!foundProgram) {
         console.warn(`프로그램을 찾을 수 없습니다 (ID: ${id})`)
         setTimeout(() => navigate('/dashboard'), 2000)
+        setLoading(false)
+        return
+      }
+      
+      // 2단계: 실시간 상태 정보 조회 (/api/status)
+      try {
+        const statusResponse = await axios.get(`/api/status`)
+        const statusList = statusResponse.data.programs_status || []
+        const programStatus = statusList.find(p => p.id === parseInt(id))
+        
+        if (programStatus) {
+          // 기본 정보 + 실시간 상태 병합
+          setProgram({
+            ...foundProgram,
+            running: programStatus.running,
+            pid: programStatus.pid,
+            cpu_percent: programStatus.cpu_percent,
+            memory_mb: programStatus.memory_mb
+          })
+        } else {
+          // 상태 정보가 없으면 기본 정보만 사용
+          setProgram(foundProgram)
+        }
+      } catch (statusError) {
+        console.warn('상태 정보 조회 실패, 기본 정보만 사용:', statusError)
+        setProgram(foundProgram)
       }
     } catch (error) {
       console.error('프로그램 로드 실패:', error)
@@ -50,7 +74,8 @@ export default function ProgramDetail() {
 
   useEffect(() => {
     loadProgram()
-    const interval = setInterval(loadProgram, 5000)
+    // 상세 페이지에서는 더 자주 상태 확인 (2초 간격)
+    const interval = setInterval(loadProgram, 2000)
     return () => clearInterval(interval)
   }, [loadProgram])
 
@@ -63,13 +88,14 @@ export default function ProgramDetail() {
       } else {
         await startProgram(program.id)
       }
-      // loadProgram은 useEffect에서 자동으로 호출됨 (5초 간격)
+      // 액션 후 즉시 상태 갱신 (500ms 대기 후)
+      setTimeout(() => loadProgram(), 500)
     } catch (error) {
       alert(`작업 실패: ${error.message}`)
     } finally {
       setActionLoading(false)
     }
-  }, [program])
+  }, [program, loadProgram])
 
   const handleDelete = useCallback(async () => {
     if (!program) return
