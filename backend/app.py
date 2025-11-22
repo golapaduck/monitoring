@@ -153,6 +153,7 @@ from api.jobs import jobs_api
 from api.powershell import powershell_api
 from api.metrics import metrics_api
 from api.plugins import plugins_api
+from api.system import system_api
 app.register_blueprint(programs_api)
 app.register_blueprint(status_api)
 app.register_blueprint(webhook_api)
@@ -161,6 +162,7 @@ app.register_blueprint(jobs_api)
 app.register_blueprint(powershell_api)
 app.register_blueprint(metrics_api)
 app.register_blueprint(plugins_api)
+app.register_blueprint(system_api)
 
 # === 프론트엔드 빌드 파일 서빙 (프로덕션 모드) ===
 # 프론트엔드 빌드 디렉토리 경로

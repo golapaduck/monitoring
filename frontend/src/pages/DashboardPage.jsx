@@ -4,6 +4,7 @@ import { getProgramsStatus } from '../lib/api'
 import ProgramCard from '../components/ProgramCard'
 import AddProgramModal from '../components/AddProgramModal'
 import LoadingSkeleton from '../components/LoadingSkeleton'
+import SystemMonitor from '../components/SystemMonitor'
 import { useProgramStatus, useNotification } from '../hooks/useWebSocket'
 
 export default function DashboardPage({ user, onLogout }) {
@@ -204,6 +205,12 @@ export default function DashboardPage({ user, onLogout }) {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* 시스템 모니터링 */}
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">시스템 리소스</h2>
+          <SystemMonitor />
         </div>
 
         {/* 프로그램 추가 버튼 (관리자만) */}
