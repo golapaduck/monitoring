@@ -1,12 +1,15 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Play, Square, Trash2, Edit } from 'lucide-react'
 import axios from 'axios'
 import { startProgram, stopProgram, deleteProgram } from '../lib/api'
 import EditProgramModal from '../components/EditProgramModal'
-import ResourceChart from '../components/ResourceChart'
-import PluginTab from '../components/PluginTab'
-import PalworldControl from '../components/PalworldControl'
+import TabNavigation from '../components/TabNavigation'
+
+// Lazy loading으로 성능 최적화
+const ResourceChart = lazy(() => import('../components/ResourceChart'))
+const PluginTab = lazy(() => import('../components/PluginTab'))
+const PalworldControl = lazy(() => import('../components/PalworldControl'))
 
 export default function ProgramDetail() {
   const { id } = useParams()
@@ -17,14 +20,15 @@ export default function ProgramDetail() {
   const [showEditModal, setShowEditModal] = useState(false)
   const [activeTab, setActiveTab] = useState('overview')
 
-  useEffect(() => {
-    loadProgram()
-    const interval = setInterval(loadProgram, 5000)
-    return () => clearInterval(interval)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
+  // 탭 데이터 메모이제이션
+  const tabs = useMemo(() => [
+    { id: 'overview', label: '개요' },
+    { id: 'metrics', label: '리소스 모니터링' },
+    { id: 'control', label: '조작' },
+    { id: 'plugins', label: '플러그인' }
+  ], [])
 
-  const loadProgram = async () => {
+  const loadProgram = useCallback(async () => {
     try {
       const response = await axios.get(`/api/programs`)
       // API 응답이 {programs: [...]} 형태
@@ -42,9 +46,15 @@ export default function ProgramDetail() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id, navigate])
 
-  const handleToggle = async () => {
+  useEffect(() => {
+    loadProgram()
+    const interval = setInterval(loadProgram, 5000)
+    return () => clearInterval(interval)
+  }, [loadProgram])
+
+  const handleToggle = useCallback(async () => {
     setActionLoading(true)
     try {
       if (program.running) {
@@ -58,9 +68,9 @@ export default function ProgramDetail() {
     } finally {
       setActionLoading(false)
     }
-  }
+  }, [program.id, program.running])
 
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
     if (!confirm('이 프로그램을 삭제하시겠습니까?')) return
 
     setActionLoading(true)
@@ -72,7 +82,7 @@ export default function ProgramDetail() {
     } finally {
       setActionLoading(false)
     }
-  }
+  }, [program.id, navigate])
 
   if (loading) {
     return (
@@ -174,47 +184,12 @@ export default function ProgramDetail() {
           </div>
 
           {/* 탭 네비게이션 */}
-          <div className="flex gap-4 mt-6 border-b border-gray-200">
-            <button
-              onClick={() => setActiveTab('overview')}
-              className={`px-4 py-2 font-medium transition-colors ${
-                activeTab === 'overview'
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              개요
-            </button>
-            <button
-              onClick={() => setActiveTab('metrics')}
-              className={`px-4 py-2 font-medium transition-colors ${
-                activeTab === 'metrics'
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              리소스 모니터링
-            </button>
-            <button
-              onClick={() => setActiveTab('control')}
-              className={`px-4 py-2 font-medium transition-colors ${
-                activeTab === 'control'
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              조작
-            </button>
-            <button
-              onClick={() => setActiveTab('plugins')}
-              className={`px-4 py-2 font-medium transition-colors ${
-                activeTab === 'plugins'
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              플러그인
-            </button>
+          <div className="mt-6">
+            <TabNavigation
+              tabs={tabs}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+            />
           </div>
         </div>
       </div>
@@ -255,20 +230,24 @@ export default function ProgramDetail() {
         {activeTab === 'metrics' && (
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">리소스 사용량</h2>
-            <ResourceChart programId={program.id} />
+            <Suspense fallback={<div className="text-center py-8 text-gray-500">로딩 중...</div>}>
+              <ResourceChart programId={program.id} />
+            </Suspense>
           </div>
         )}
 
         {activeTab === 'control' && (
-          <div>
+          <Suspense fallback={<div className="text-center py-8 text-gray-500">로딩 중...</div>}>
             <PalworldControl programId={program.id} />
-          </div>
+          </Suspense>
         )}
 
         {activeTab === 'plugins' && (
           <div className="bg-white rounded-lg shadow p-6">
             {program && program.id ? (
-              <PluginTab programId={program.id} />
+              <Suspense fallback={<div className="text-center py-8 text-gray-500">로딩 중...</div>}>
+                <PluginTab programId={program.id} />
+              </Suspense>
             ) : (
               <div className="text-center py-8 text-gray-500">
                 프로그램 정보를 불러오는 중...
