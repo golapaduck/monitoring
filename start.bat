@@ -6,7 +6,7 @@ echo ========================================
 echo.
 
 echo [1/2] Starting Backend Server...
-start "Backend (Flask)" cmd /k "chcp 65001 >nul && cd backend && python app.py"
+start "Backend (Flask)" cmd /k "chcp 65001 >nul && cd backend && python -u app.py"
 
 timeout /t 2 /nobreak >nul
 

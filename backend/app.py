@@ -7,11 +7,11 @@ Blueprint 기반 모듈화 구조:
 - utils/: 유틸리티 함수들
 """
 
-# Windows 콘솔 UTF-8 인코딩 설정
+# Windows 콘솔 UTF-8 인코딩 및 버퍼링 비활성화
 import sys
 import io
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
-sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_buffering=True)
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', line_buffering=True)
 
 from flask import Flask
 from config import Config, USERS_JSON, PROGRAMS_JSON, STATUS_JSON
