@@ -25,6 +25,9 @@ def init_socketio(app):
     from config import Config
     cors_origins = Config.CORS_ORIGINS
     
+    import os
+    is_production = os.getenv("PRODUCTION", "False").lower() == "true"
+    
     socketio = SocketIO(
         app,
         cors_allowed_origins=cors_origins,  # 환경별 CORS 설정
@@ -33,7 +36,9 @@ def init_socketio(app):
         engineio_logger=False,               # Engine.IO 로깅은 비활성화
         ping_timeout=60,                     # ping 타임아웃 (초)
         ping_interval=25,                    # ping 간격 (초)
-        max_http_buffer_size=1000000         # HTTP 버퍼 크기
+        max_http_buffer_size=1000000,        # HTTP 버퍼 크기
+        # 프로덕션에서는 polling만 사용 (Waitress는 WebSocket 미지원)
+        transports=['polling'] if is_production else ['polling', 'websocket']
     )
     
     # 이벤트 핸들러 등록
