@@ -24,6 +24,8 @@ class ProcessMonitor:
         self.recent_stops = set()  # 최근 의도적으로 종료된 프로그램 이름
         self.pending_check = False  # 즉시 체크 요청 플래그
         self.metric_threads = {}  # 메트릭 수집 스레드 (비동기 처리)
+        self.last_metrics = {}  # {program_id: {cpu, memory}} - 메트릭 변화 감지용
+        self.running_processes = {}  # {program_id: pid} - 실행 중인 프로세스
         
     def start(self):
         """모니터링 시작."""
@@ -50,9 +52,18 @@ class ProcessMonitor:
     
     def _monitor_loop(self):
         """모니터링 루프 (백그라운드 스레드)."""
+        metric_collection_counter = 0
+        
         while self.running:
             try:
                 self._check_processes()
+                
+                # 1초마다 메트릭 주기적 수집 (차트 업데이트 부드럽게)
+                metric_collection_counter += 1
+                if metric_collection_counter >= 1:  # 1초마다
+                    self._collect_metrics_periodic()
+                    metric_collection_counter = 0
+                    
             except Exception as e:
                 print(f"⚠️ [Process Monitor] 모니터링 오류: {str(e)}")
             
@@ -84,8 +95,15 @@ class ProcessMonitor:
             current_pid = program.get("pid")
             
             # 메트릭 수집을 비동기로 처리 (상태 확인을 블로킹하지 않음)
+            # 상태 변화 시에만 메트릭 수집 (효율성)
             if is_running and current_pid:
+                self.running_processes[program_id] = current_pid
                 self._collect_metrics_async(program_id, current_pid)
+            elif program_id in self.running_processes:
+                # 프로세스가 종료됨
+                del self.running_processes[program_id]
+                if program_id in self.last_metrics:
+                    del self.last_metrics[program_id]
             
             # 이전 상태와 비교
             was_running = self.last_status.get(program_name)
@@ -117,6 +135,15 @@ class ProcessMonitor:
             # 현재 상태 저장
             self.last_status[program_name] = is_running
     
+    def _collect_metrics_periodic(self):
+        """1초마다 모든 실행 중인 프로그램의 메트릭 수집 (주기적).
+        
+        상태 변화와 무관하게 주기적으로 메트릭을 수집하여
+        차트 업데이트를 부드럽게 합니다.
+        """
+        for program_id, pid in list(self.running_processes.items()):
+            self._collect_metrics_async(program_id, pid)
+    
     def _collect_metrics_async(self, program_id, pid):
         """메트릭을 비동기로 수집 (상태 확인을 블로킹하지 않음).
         
@@ -142,14 +169,14 @@ class ProcessMonitor:
         self.metric_threads[thread_key] = thread
     
     def _collect_metrics_with_timeout(self, program_id, pid):
-        """타임아웃이 있는 메트릭 수집 (1초 제한).
+        """타임아웃이 있는 메트릭 수집 (2초 제한 - 더 안정적).
         
         Args:
             program_id: 프로그램 ID
             pid: 프로세스 ID
         """
         try:
-            # psutil을 먼저 시도 (빠름, 1초 이내)
+            # psutil을 먼저 시도 (빠름, 2초 이내)
             self._collect_metrics_psutil(program_id, pid)
         except Exception as e:
             print(f"⚠️ [Process Monitor] 메트릭 수집 오류 (PID {pid}): {str(e)}")

@@ -55,14 +55,14 @@ export default function DashboardPage({ user, onLogout }) {
     fetchPrograms()
   }, [fetchPrograms])
 
-  // 웹소켓이 연결되지 않은 경우에만 폴링 (5초 간격)
+  // 웹소켓이 연결되지 않은 경우에만 폴링 (2초 간격 - 더 빠른 복구)
   // 웹소켓 연결 시 폴링 중지 (실시간 업데이트 사용)
   useEffect(() => {
     if (!isConnected) {
-      console.log('📡 [Dashboard] 웹소켓 미연결 - 폴링 시작')
+      console.log('📡 [Dashboard] 웹소켓 미연결 - 폴링 시작 (2초 간격)')
       const interval = setInterval(() => {
         fetchPrograms()
-      }, 5000)
+      }, 2000)  // 5초 → 2초로 단축 (더 빠른 상태 감지)
 
       return () => {
         clearInterval(interval)
