@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
-import { LogOut, Plus, RefreshCw } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { LogOut, Plus, RefreshCw, Wifi, WifiOff } from 'lucide-react'
 import { getProgramsStatus } from '../lib/api'
 import ProgramCard from '../components/ProgramCard'
 import AddProgramModal from '../components/AddProgramModal'
+import { useProgramStatus, useNotification } from '../hooks/useWebSocket'
 
 export default function DashboardPage({ user, onLogout }) {
   const [programs, setPrograms] = useState([])
@@ -24,19 +25,44 @@ export default function DashboardPage({ user, onLogout }) {
     }
   }
 
+  // 웹소켓 프로그램 상태 업데이트 핸들러
+  const handleProgramStatusChange = useCallback((data) => {
+    const { program_id, data: statusData } = data
+    
+    setPrograms(prevPrograms => 
+      prevPrograms.map(program => 
+        program.id === program_id
+          ? { ...program, ...statusData }
+          : program
+      )
+    )
+  }, [])
+
+  // 웹소켓 알림 핸들러
+  const handleNotification = useCallback((data) => {
+    console.log('알림:', data)
+    // 필요시 토스트 알림 표시
+  }, [])
+
+  // 웹소켓 연결
+  const { isConnected } = useProgramStatus(handleProgramStatusChange)
+  useNotification(handleNotification)
+
   // 초기 로드
   useEffect(() => {
     fetchPrograms()
   }, [])
 
-  // 5초마다 자동 새로고침
+  // 웹소켓이 연결되지 않은 경우에만 폴링
   useEffect(() => {
-    const interval = setInterval(() => {
-      fetchPrograms()
-    }, 5000)
+    if (!isConnected) {
+      const interval = setInterval(() => {
+        fetchPrograms()
+      }, 5000)
 
-    return () => clearInterval(interval)
-  }, [])
+      return () => clearInterval(interval)
+    }
+  }, [isConnected])
 
   // 수동 새로고침
   const handleRefresh = () => {
@@ -77,6 +103,25 @@ export default function DashboardPage({ user, onLogout }) {
               </p>
             </div>
             <div className="flex items-center gap-3">
+              {/* 웹소켓 연결 상태 */}
+              <div className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium ${
+                isConnected 
+                  ? 'bg-green-100 text-green-700' 
+                  : 'bg-gray-100 text-gray-600'
+              }`}>
+                {isConnected ? (
+                  <>
+                    <Wifi className="w-4 h-4" />
+                    실시간 연결
+                  </>
+                ) : (
+                  <>
+                    <WifiOff className="w-4 h-4" />
+                    폴링 모드
+                  </>
+                )}
+              </div>
+              
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}
