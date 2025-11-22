@@ -22,6 +22,7 @@ from utils.process_manager import (
     restart_program,
     get_process_stats
 )
+from utils.cache import get_cache
 from utils.logger import log_program_event as log_event_json, get_program_logs, calculate_uptime
 from utils.webhook import send_webhook_notification
 from utils.database import (
@@ -43,9 +44,21 @@ from utils.path_validator import validate_program_path, normalize_path, get_path
 def programs():
     """프로그램 목록 조회 및 등록 API."""
     if request.method == "GET":
+        # 캐시 확인
+        cache = get_cache()
+        cached_programs = cache.get("all_programs")
+        if cached_programs is not None:
+            logger.debug("프로그램 목록 캐시 히트")
+            return jsonify({"programs": cached_programs})
+        
         # SQLite에서 프로그램 목록 조회
-        programs = get_all_programs()
-        return jsonify({"programs": programs})
+        programs_list = get_all_programs()
+        
+        # 캐시에 저장 (5초)
+        cache.set("all_programs", programs_list)
+        logger.debug(f"프로그램 목록 캐시 저장: {len(programs_list)}개")
+        
+        return jsonify({"programs": programs_list})
     
     # POST - 프로그램 등록 (관리자만)
     if session.get("role") != "admin":
@@ -84,6 +97,11 @@ def programs():
     )
     
     logger.info(f"프로그램 등록: {data['name']} -> {normalized_path} (ID: {program_id})")
+    
+    # 캐시 무효화
+    cache = get_cache()
+    cache.delete("all_programs")
+    logger.debug("프로그램 목록 캐시 무효화")
     
     return created_response(
         data={"id": program_id, "name": data["name"], "path": normalized_path},
