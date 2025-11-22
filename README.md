@@ -63,8 +63,16 @@ Windows 서버에서 실행되는 프로그램들을 관제하고 관리하는 �
 
 ### 1. 의존성 설치
 
+**백엔드:**
 ```bash
 pip install -r requirements.txt
+```
+
+**프론트엔드:**
+```bash
+cd frontend
+npm install
+cd ..
 ```
 
 ### 2. 환경 변수 설정
@@ -77,35 +85,32 @@ copy .env.example .env
 
 주요 설정:
 
+**실행 모드:**
+- `PRODUCTION`: 프로덕션 모드 여부 (True/False)
+  - `False`: 개발 모드 (백엔드 + 프론트엔드 별도 실행)
+  - `True`: 프로덕션 모드 (단일 서버로 통합 실행)
+
 **백엔드 (Flask):**
 - `FLASK_HOST`: Flask 서버 호스트 (기본: 0.0.0.0)
 - `FLASK_PORT`: Flask 서버 포트 (기본: 8080)
 - `FLASK_DEBUG`: 디버그 모드 (개발: True, 운영: False)
 - `SECRET_KEY`: 세션 암호화 키 (운영 환경에서는 반드시 변경!)
 
-**프론트엔드 (Vite):**
+**프론트엔드 (Vite - 개발 모드에서만 사용):**
 - `VITE_PORT`: Vite 개발 서버 포트 (기본: 5173)
 - 백엔드 URL은 `FLASK_PORT`를 자동으로 사용합니다
 
-### 3. 프론트엔드 의존성 설치
+### 3. 실행 방법
 
-```bash
-cd frontend
-npm install
-```
+#### 🔧 개발 모드 (권장 - 개발 시)
 
-### 4. 개발 모드 실행
-
-**방법 1: 자동 실행 스크립트 (권장)**
+**자동 실행 스크립트:**
 ```bash
 # Windows
 start.bat
-
-# Linux/Mac
-./start.sh
 ```
 
-**방법 2: 수동 실행**
+**수동 실행:**
 ```bash
 # 백엔드 (터미널 1)
 cd backend
@@ -119,6 +124,35 @@ npm run dev
 **접속:**
 - 프론트엔드: `http://localhost:5173`
 - 백엔드 API: `http://localhost:8080`
+
+**특징:**
+- ✅ 핫 리로드 (코드 수정 시 자동 새로고침)
+- ✅ 빠른 개발 속도
+- ✅ 디버깅 용이
+
+---
+
+#### 🚀 프로덕션 모드 (권장 - 배포 시)
+
+**1단계: 빌드**
+```bash
+# Windows
+build.bat
+```
+
+**2단계: 실행**
+```bash
+# Windows
+run-production.bat
+```
+
+**접속:**
+- 통합 서버: `http://localhost:8080`
+
+**특징:**
+- ✅ 단일 서버로 실행 (간편한 배포)
+- ✅ 최적화된 빌드 (빠른 로딩)
+- ✅ 프로덕션 환경에 적합
 
 ### 5. 기본 계정
 

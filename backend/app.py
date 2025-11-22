@@ -13,13 +13,14 @@ import io
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_buffering=True)
 sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', line_buffering=True)
 
-from flask import Flask
+from flask import Flask, send_from_directory
 from config import Config, USERS_JSON, PROGRAMS_JSON, STATUS_JSON
 from utils.data_manager import init_default_data
 from utils.process_monitor import start_process_monitor, stop_process_monitor
 from utils.auth import migrate_plain_passwords
 from utils.data_manager import load_json, save_json
 from datetime import timedelta
+from pathlib import Path
 import atexit
 import os
 
@@ -68,6 +69,30 @@ app.register_blueprint(webhook_api)
 app.register_blueprint(file_explorer_api)
 app.register_blueprint(metrics_api)
 app.register_blueprint(plugins_api)
+
+# === 프론트엔드 빌드 파일 서빙 (프로덕션 모드) ===
+# 프론트엔드 빌드 디렉토리 경로
+FRONTEND_DIST = Path(__file__).parent.parent / "frontend" / "dist"
+
+if FRONTEND_DIST.exists() and os.getenv("PRODUCTION", "False").lower() == "true":
+    print(f"[Production Mode] 프론트엔드 빌드 파일 서빙: {FRONTEND_DIST}")
+    
+    @app.route('/', defaults={'path': ''})
+    @app.route('/<path:path>')
+    def serve_frontend(path):
+        """프론트엔드 빌드 파일 서빙 (SPA 라우팅 지원)."""
+        # API 요청은 제외
+        if path.startswith('api/'):
+            return {"error": "Not Found"}, 404
+        
+        # 파일이 존재하면 해당 파일 반환
+        if path and (FRONTEND_DIST / path).exists():
+            return send_from_directory(FRONTEND_DIST, path)
+        
+        # 그 외에는 index.html 반환 (SPA 라우팅)
+        return send_from_directory(FRONTEND_DIST, 'index.html')
+else:
+    print("[Development Mode] 프론트엔드는 별도 개발 서버(Vite)에서 실행됩니다")
 
 
 if __name__ == "__main__":
