@@ -23,6 +23,10 @@ STATUS_JSON = DATA_DIR / "status.json"
 class Config:
     """Flask 애플리케이션 설정 클래스."""
     
+    # 환경 변수
+    ENVIRONMENT = os.getenv("ENVIRONMENT", "development")  # development, production
+    IS_PRODUCTION = ENVIRONMENT == "production"
+    
     SECRET_KEY = os.getenv("SECRET_KEY", "dev-monitoring-secret-key")
     FLASK_HOST = os.getenv("FLASK_HOST", "0.0.0.0")
     FLASK_PORT = int(os.getenv("FLASK_PORT", "5000"))
@@ -30,6 +34,14 @@ class Config:
     
     # 세션 설정
     PERMANENT_SESSION_LIFETIME = int(os.getenv("SESSION_LIFETIME", "3600"))  # 기본 1시간 (초 단위)
-    SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "False").lower() == "true"  # HTTPS 전용
+    SESSION_COOKIE_SECURE = IS_PRODUCTION  # 프로덕션에서만 HTTPS 전용
     SESSION_COOKIE_HTTPONLY = True  # JavaScript 접근 차단
     SESSION_COOKIE_SAMESITE = "Lax"  # CSRF 보호
+    
+    # CORS 설정 (환경별 분리)
+    if IS_PRODUCTION:
+        # 프로덕션: 특정 도메인만 허용
+        CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:8080").split(",")
+    else:
+        # 개발: 모든 origin 허용
+        CORS_ORIGINS = "*"

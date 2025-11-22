@@ -25,6 +25,7 @@ from utils.process_manager import (
 from utils.cache import get_cache
 from utils.logger import log_program_event as log_event_json, get_program_logs, calculate_uptime
 from utils.webhook import send_webhook_notification
+from utils.rate_limiter import limiter, get_rate_limit
 from utils.database import (
     get_all_programs,
     get_program_by_id,
@@ -41,6 +42,7 @@ from utils.path_validator import validate_program_path, normalize_path, get_path
 
 @programs_api.route("", methods=["GET", "POST"])
 @require_auth
+@limiter.limit(get_rate_limit("programs_list"))
 def programs():
     """프로그램 목록 조회 및 등록 API."""
     if request.method == "GET":

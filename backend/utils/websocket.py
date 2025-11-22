@@ -20,15 +20,20 @@ def init_socketio(app):
         SocketIO: 초기화된 SocketIO 인스턴스
     """
     global socketio
+    
+    # CORS 설정 (환경별)
+    from config import Config
+    cors_origins = Config.CORS_ORIGINS
+    
     socketio = SocketIO(
         app,
-        cors_allowed_origins="*",     # 개발 시 모든 origin 허용
-        async_mode='threading',        # threading 모드 사용
-        logger=False,                  # 로깅 비활성화 (werkzeug 에러 방지)
-        engineio_logger=False,         # Engine.IO 로깅은 비활성화
-        ping_timeout=60,               # ping 타임아웃 (초)
-        ping_interval=25,              # ping 간격 (초)
-        max_http_buffer_size=1000000   # HTTP 버퍼 크기
+        cors_allowed_origins=cors_origins,  # 환경별 CORS 설정
+        async_mode='threading',              # threading 모드 사용
+        logger=False,                        # 로깅 비활성화 (werkzeug 에러 방지)
+        engineio_logger=False,               # Engine.IO 로깅은 비활성화
+        ping_timeout=60,                     # ping 타임아웃 (초)
+        ping_interval=25,                    # ping 간격 (초)
+        max_http_buffer_size=1000000         # HTTP 버퍼 크기
     )
     
     # 이벤트 핸들러 등록

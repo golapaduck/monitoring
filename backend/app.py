@@ -32,6 +32,10 @@ app.config.from_object(Config)
 # 응답 압축 활성화 (gzip)
 Compress(app)
 
+# Rate Limiter 초기화
+from utils.rate_limiter import init_limiter
+init_limiter(app)
+
 # SocketIO 초기화
 from utils.websocket import init_socketio
 socketio = init_socketio(app)
@@ -124,6 +128,10 @@ def handle_internal_error(error):
         "error": "서버 내부 오류가 발생했습니다",
         "error_code": "INTERNAL_SERVER_ERROR"
     }), 500
+
+# === 성능 모니터링 API 등록 ===
+from utils.performance_monitor import create_performance_api
+create_performance_api(app)
 
 # === Blueprint 등록 ===
 
