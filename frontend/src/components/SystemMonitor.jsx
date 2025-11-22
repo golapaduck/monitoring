@@ -25,10 +25,11 @@ export default function SystemMonitor() {
     const fetchSystemStats = async () => {
       try {
         const response = await axios.get('/api/system/stats')
-        setSystemStats(response.data.stats || {})
+        console.log('📊 [SystemMonitor] API 응답:', response.data)
+        setSystemStats(response.data.data || {})
         setError(null)
       } catch (err) {
-        console.error('시스템 통계 조회 실패:', err)
+        console.error('❌ [SystemMonitor] 시스템 통계 조회 실패:', err)
         setError('시스템 통계를 조회할 수 없습니다')
       } finally {
         setLoading(false)
