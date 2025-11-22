@@ -57,8 +57,8 @@ def programs():
         # SQLite에서 프로그램 목록 조회 (최적화된 쿼리)
         programs_list = get_all_programs()
         
-        # 캐시에 저장 (10초)
-        cache.set("all_programs", programs_list)
+        # 캐시에 저장 (10초, 태그 추가)
+        cache.set("all_programs", programs_list, tags=["programs", "programs:list"])
         logger.debug(f"프로그램 목록 캐시 저장: {len(programs_list)}개")
         
         return jsonify({"programs": programs_list})
@@ -101,10 +101,10 @@ def programs():
     
     logger.info(f"프로그램 등록: {data['name']} -> {normalized_path} (ID: {program_id})")
     
-    # 캐시 무효화
+    # 캐시 무효화 (태그 기반)
     cache = get_cache()
-    cache.delete("all_programs")
-    logger.debug("프로그램 목록 캐시 무효화")
+    invalidated = cache.invalidate_by_tag("programs")
+    logger.info(f"프로그램 등록 - 캐시 무효화: {invalidated}개")
     
     return created_response(
         data={"id": program_id, "name": data["name"], "path": normalized_path},
@@ -254,8 +254,8 @@ def get_program(program_id):
     if not program:
         return error_response("프로그램을 찾을 수 없습니다", 404)
     
-    # 캐시에 저장 (30초)
-    cache.set(cache_key, program)
+    # 캐시에 저장 (30초, 태그 추가)
+    cache.set(cache_key, program, tags=["programs", f"program:{program_id}"])
     logger.debug(f"프로그램 캐시 저장: program_id={program_id}")
     
     return jsonify({"program": program})
@@ -306,11 +306,10 @@ def update(program_id):
     
     print(f"✅ [Programs API] 프로그램 수정: {data['name']} -> {normalized_path}")
     
-    # 캐시 무효화
+    # 캐시 무효화 (태그 기반)
     cache = get_cache()
-    cache.delete("all_programs")
-    cache.delete(f"program:{program_id}")
-    logger.debug(f"프로그램 캐시 무효화: program_id={program_id}")
+    invalidated = cache.invalidate_multiple_tags(["programs", f"program:{program_id}"])
+    logger.info(f"프로그램 수정 - 캐시 무효화: {invalidated}개")
     
     return jsonify({"success": True, "message": "프로그램 정보가 수정되었습니다."})
 
@@ -329,11 +328,10 @@ def delete(program_id):
     
     print(f"🗑️ [Programs API] 프로그램 삭제: {program['name']}")
     
-    # 캐시 무효화
+    # 캐시 무효화 (태그 기반)
     cache = get_cache()
-    cache.delete("all_programs")
-    cache.delete(f"program:{program_id}")
-    logger.debug(f"프로그램 캐시 무효화: program_id={program_id}")
+    invalidated = cache.invalidate_multiple_tags(["programs", f"program:{program_id}"])
+    logger.info(f"프로그램 삭제 - 캐시 무효화: {invalidated}개")
     
     return jsonify({"success": True})
 
