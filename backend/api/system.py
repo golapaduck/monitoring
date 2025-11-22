@@ -66,7 +66,7 @@ def get_system_stats():
             'uptime_seconds': uptime_seconds
         }
         
-        return jsonify(success_response(stats, 'stats'))
+        return success_response(stats, 'stats')
         
     except Exception as e:
         print(f"⚠️ [System API] 시스템 통계 조회 오류: {str(e)}")
