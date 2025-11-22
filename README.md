@@ -1,24 +1,57 @@
 # Monitoring System
 
-Windows 서버에서 실행되는 프로그램들을 관제하고 관리하는 경량 모니터링 시스템입니다.
+Windows 서버에서 실행되는 프로그램들을 관제하고 관리하는 모니터링 시스템입니다.
 
 ## 주요 기능
 
-### 관리자 계정
-- 프로그램 등록/삭제
-- 프로그램 실행/종료
-- 프로그램 상태 조회
+### 🎯 프로그램 관리
+- **프로그램 등록/수정/삭제** (관리자)
+- **프로그램 실행/종료/재시작** (관리자/게스트)
+- **강제 종료** (자식 프로세스까지 완전 정리)
+- **실시간 상태 모니터링** (5초 간격)
+- **프로그램별 상세 대시보드**
 
-### 게스트 계정
-- 프로그램 상태 조회
-- 프로그램 재부팅
+### 📊 리소스 모니터링
+- **CPU/메모리 사용량 실시간 추적**
+- **리소스 사용 히스토리 차트** (시간대별)
+- **프로세스 정보** (PID, 가동 시간)
+
+### 🔔 알림 시스템
+- **웹훅 알림** (Discord, Slack 등)
+- **프로그램별 웹훅 설정**
+- **비정상 종료 감지 및 알림**
+
+### 🧩 플러그인 시스템
+- **RCON Controller**: 게임 서버 원격 제어 (Minecraft, Palworld 등)
+- **REST API Controller**: HTTP API 호출 및 웹훅 전송
+- **플러그인 동적 로딩**
+- **프로그램별 플러그인 설정**
+
+### 👥 사용자 관리
+- **역할 기반 접근 제어** (관리자/게스트)
+- **세션 기반 인증**
+- **비밀번호 해싱** (bcrypt)
 
 ## 기술 스택
 
-- **백엔드**: Flask (Python)
-- **프론트엔드**: HTML, CSS, JavaScript + Bootstrap 5
-- **데이터 저장**: JSON 파일
-- **운영**: Windows 작업 스케줄러
+### 백엔드
+- **Flask** (Python 3.x)
+- **SQLite** (데이터베이스)
+- **psutil** (프로세스 모니터링)
+- **bcrypt** (비밀번호 해싱)
+- **requests** (HTTP 클라이언트)
+
+### 프론트엔드
+- **React** (UI 프레임워크)
+- **Vite** (빌드 도구)
+- **Axios** (HTTP 클라이언트)
+- **Recharts** (차트 라이브러리)
+- **Lucide React** (아이콘)
+- **TailwindCSS** (스타일링)
+
+### 인프라
+- **Windows** (운영 환경)
+- **환경 변수** (.env 파일)
 
 ## 설치 및 실행
 
@@ -48,22 +81,38 @@ copy .env.example .env
 - `VITE_PORT`: Vite 개발 서버 포트 (기본: 5173)
 - 백엔드 URL은 `FLASK_PORT`를 자동으로 사용합니다
 
-### 3. 개발 모드 실행
+### 3. 프론트엔드 의존성 설치
 
 ```bash
-python app.py
+cd frontend
+npm install
 ```
 
-브라우저에서 `http://localhost:5000` 접속
+### 4. 개발 모드 실행
 
-### 4. 24시간 자동 실행 (Windows 작업 스케줄러)
+**방법 1: 자동 실행 스크립트 (권장)**
+```bash
+# Windows
+start.bat
 
-자세한 내용은 [Windows 작업 스케줄러 설정 가이드](doc/windows-task-scheduler-guide.md)를 참고하세요.
+# Linux/Mac
+./start.sh
+```
 
-간단 요약:
-1. PowerShell 스크립트 실행 권한 설정
-2. 작업 스케줄러에서 `scripts/start_monitoring.ps1` 등록
-3. 시스템 부팅 시 자동 실행 설정
+**방법 2: 수동 실행**
+```bash
+# 백엔드 (터미널 1)
+cd backend
+python -u app.py
+
+# 프론트엔드 (터미널 2)
+cd frontend
+npm run dev
+```
+
+**접속:**
+- 프론트엔드: `http://localhost:5173`
+- 백엔드 API: `http://localhost:8080`
 
 ### 5. 기본 계정
 
@@ -75,49 +124,215 @@ python app.py
 ## 프로젝트 구조
 
 ```
-windsurf-project/
-├── app.py                    # Flask 애플리케이션 진입점 (43줄)
-├── config.py                 # 설정 및 경로 관리
-├── requirements.txt          # Python 의존성
-├── README.md                # 프로젝트 문서
-├── .env                     # 환경 변수 (gitignore)
-├── .env.example             # 환경 변수 템플릿
-├── routes/                  # 웹 페이지 라우트
-│   ├── __init__.py
-│   └── web.py              # 로그인, 대시보드 등
-├── api/                     # REST API 엔드포인트
-│   ├── __init__.py
-│   ├── programs.py         # 프로그램 제어 API
-│   └── status.py           # 상태 조회 API
-├── utils/                   # 유틸리티 함수
-│   ├── __init__.py
-│   ├── data_manager.py     # JSON 파일 처리
-│   └── process_manager.py  # 프로세스 관리
-├── templates/               # HTML 템플릿
-│   ├── login.html          # 로그인 페이지
-│   └── dashboard.html      # 대시보드
-├── scripts/                 # 운영 스크립트
-│   └── start_monitoring.ps1 # 자동 시작 스크립트
-├── doc/                     # 개발 문서
-│   ├── development-progress.md
-│   └── windows-task-scheduler-guide.md
-├── data/                    # JSON 데이터 저장소 (자동 생성)
-│   ├── users.json          # 사용자 정보
-│   ├── programs.json       # 프로그램 목록
-│   └── status.json         # 프로그램 상태
-└── logs/                    # 로그 파일 (자동 생성)
-    └── monitoring_YYYYMMDD.log
+monitoring/
+├── backend/                     # Flask 백엔드
+│   ├── app.py                  # Flask 애플리케이션 진입점
+│   ├── config.py               # 설정 및 경로 관리
+│   ├── requirements.txt        # Python 의존성
+│   │
+│   ├── routes/                 # 웹 페이지 라우트
+│   │   └── web.py             # 로그인, 대시보드 등
+│   │
+│   ├── api/                    # REST API 엔드포인트
+│   │   ├── programs.py        # 프로그램 관리 API
+│   │   ├── metrics.py         # 리소스 메트릭 API
+│   │   └── plugins.py         # 플러그인 관리 API
+│   │
+│   ├── utils/                  # 유틸리티 함수
+│   │   ├── database.py        # SQLite 데이터베이스
+│   │   ├── process_manager.py # 프로세스 관리
+│   │   ├── process_monitor.py # 프로세스 모니터링
+│   │   ├── auth.py            # 인증 및 비밀번호 해싱
+│   │   ├── webhook.py         # 웹훅 알림
+│   │   └── logger.py          # 로깅
+│   │
+│   ├── plugins/                # 플러그인 시스템
+│   │   ├── base.py            # 플러그인 베이스 클래스
+│   │   ├── loader.py          # 플러그인 로더
+│   │   └── available/         # 사용 가능한 플러그인
+│   │       ├── rcon.py        # RCON Controller
+│   │       └── rest_api.py    # REST API Controller
+│   │
+│   ├── data/                   # 데이터 저장소 (자동 생성)
+│   │   └── monitoring.db      # SQLite 데이터베이스
+│   │
+│   └── static/                 # 정적 파일
+│       └── dist/              # 프론트엔드 빌드 결과
+│
+├── frontend/                    # React 프론트엔드
+│   ├── package.json            # Node.js 의존성
+│   ├── vite.config.js          # Vite 설정
+│   ├── tailwind.config.js      # TailwindCSS 설정
+│   │
+│   ├── src/
+│   │   ├── main.jsx           # React 진입점
+│   │   ├── App.jsx            # 라우팅 설정
+│   │   │
+│   │   ├── pages/             # 페이지 컴포넌트
+│   │   │   ├── LoginPage.jsx
+│   │   │   ├── DashboardPage.jsx
+│   │   │   └── ProgramDetail.jsx  # 프로그램 상세 페이지
+│   │   │
+│   │   ├── components/        # 재사용 컴포넌트
+│   │   │   ├── ProgramCard.jsx
+│   │   │   ├── ResourceChart.jsx
+│   │   │   ├── PluginTab.jsx      # 플러그인 탭
+│   │   │   └── EditProgramModal.jsx
+│   │   │
+│   │   └── lib/               # 유틸리티
+│   │       └── api.js         # API 클라이언트
+│   │
+│   └── public/                 # 공개 자산
+│
+├── .env                        # 환경 변수 (gitignore)
+├── .env.example                # 환경 변수 템플릿
+├── start.bat                   # Windows 시작 스크립트
+├── start.sh                    # Linux/Mac 시작 스크립트
+└── README.md                   # 프로젝트 문서
 ```
 
-## 다음 단계
+## 아키텍처
 
-1. PowerShell 에이전트 스크립트 작성 (프로그램 상태 수집)
-2. Windows 작업 스케줄러 설정 가이드 작성
-3. 프로그램 실행/종료 제어 기능 구현
-4. 자동 재시작 로직 구현
+### 시스템 구성도
 
-## 보안 주의사항
+```
+┌─────────────────────────────────────────────────────────┐
+│                    사용자 (브라우저)                      │
+└────────────────────┬────────────────────────────────────┘
+                     │ HTTP
+                     ▼
+┌─────────────────────────────────────────────────────────┐
+│              React Frontend (Vite)                       │
+│  - 대시보드, 프로그램 관리, 플러그인 UI                   │
+│  - 실시간 상태 업데이트 (5초 간격)                       │
+└────────────────────┬────────────────────────────────────┘
+                     │ REST API
+                     ▼
+┌─────────────────────────────────────────────────────────┐
+│              Flask Backend (Python)                      │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │  API Layer                                       │   │
+│  │  - /api/programs  (프로그램 관리)                │   │
+│  │  - /api/metrics   (리소스 메트릭)                │   │
+│  │  - /api/plugins   (플러그인 관리)                │   │
+│  └─────────────────────────────────────────────────┘   │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │  Business Logic                                  │   │
+│  │  - Process Manager  (프로세스 제어)              │   │
+│  │  - Process Monitor  (상태 모니터링)              │   │
+│  │  - Plugin Loader    (플러그인 동적 로딩)         │   │
+│  │  - Webhook Manager  (알림 전송)                  │   │
+│  └─────────────────────────────────────────────────┘   │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │  Data Layer                                      │   │
+│  │  - SQLite Database                               │   │
+│  │    • users (사용자)                              │   │
+│  │    • programs (프로그램)                         │   │
+│  │    • resource_usage (리소스 사용량)              │   │
+│  │    • plugin_configs (플러그인 설정)              │   │
+│  └─────────────────────────────────────────────────┘   │
+└────────────────────┬────────────────────────────────────┘
+                     │ psutil
+                     ▼
+┌─────────────────────────────────────────────────────────┐
+│              Windows OS (프로세스)                       │
+│  - 관리 대상 프로그램들                                  │
+│  - 자식 프로세스 추적 및 제어                            │
+└─────────────────────────────────────────────────────────┘
+```
 
-- 현재 비밀번호는 평문으로 저장됩니다 (프로토타입 단계)
-- 실서비스 배포 시 반드시 비밀번호 해싱 적용 필요
-- SECRET_KEY를 환경변수로 분리 필요
+### 플러그인 시스템 구조
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                  Plugin System                           │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │  PluginBase (Abstract Class)                    │   │
+│  │  - get_name()                                    │   │
+│  │  - get_description()                             │   │
+│  │  - get_config_schema()                           │   │
+│  │  - get_actions()                                 │   │
+│  │  - execute_action()                              │   │
+│  │  - validate_config()                             │   │
+│  │  - on_program_start/stop/crash()                 │   │
+│  └─────────────────────────────────────────────────┘   │
+│                        ▲                                 │
+│                        │ 상속                            │
+│           ┌────────────┴────────────┐                   │
+│           │                         │                   │
+│  ┌────────┴────────┐   ┌───────────┴──────────┐       │
+│  │  RCON Plugin    │   │  REST API Plugin     │       │
+│  │  - 게임 서버     │   │  - HTTP 요청         │       │
+│  │  - 명령어 실행   │   │  - 웹훅 전송         │       │
+│  └─────────────────┘   └──────────────────────┘       │
+│                                                          │
+│  ┌─────────────────────────────────────────────────┐   │
+│  │  PluginLoader                                    │   │
+│  │  - 플러그인 자동 발견                             │   │
+│  │  - 동적 로딩/언로딩                               │   │
+│  │  - 생명주기 관리                                  │   │
+│  └─────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────┘
+```
+
+## 데이터베이스 스키마
+
+### users (사용자)
+- `id`: INTEGER PRIMARY KEY
+- `username`: TEXT UNIQUE
+- `password_hash`: TEXT
+- `role`: TEXT (admin/guest)
+
+### programs (프로그램)
+- `id`: INTEGER PRIMARY KEY
+- `name`: TEXT
+- `path`: TEXT
+- `args`: TEXT
+- `pid`: INTEGER
+- `webhook_urls`: TEXT
+
+### resource_usage (리소스 사용량)
+- `id`: INTEGER PRIMARY KEY
+- `program_id`: INTEGER
+- `timestamp`: TEXT
+- `cpu_percent`: REAL
+- `memory_mb`: REAL
+
+### plugin_configs (플러그인 설정)
+- `id`: INTEGER PRIMARY KEY
+- `program_id`: INTEGER
+- `plugin_id`: TEXT
+- `config`: TEXT (JSON)
+- `enabled`: INTEGER (0/1)
+
+## API 엔드포인트
+
+### 프로그램 관리
+- `GET /api/programs` - 프로그램 목록 조회
+- `POST /api/programs` - 프로그램 등록
+- `PUT /api/programs/<id>` - 프로그램 수정
+- `DELETE /api/programs/<id>/delete` - 프로그램 삭제
+- `POST /api/programs/<id>/start` - 프로그램 시작
+- `POST /api/programs/<id>/stop` - 프로그램 종료
+- `POST /api/programs/<id>/restart` - 프로그램 재시작
+- `GET /api/programs/status` - 전체 상태 조회
+
+### 리소스 메트릭
+- `GET /api/metrics/<id>?hours=24` - 리소스 사용 히스토리
+
+### 플러그인
+- `GET /api/plugins/available` - 사용 가능한 플러그인 목록
+- `GET /api/plugins/program/<id>` - 프로그램별 플러그인 설정
+- `POST /api/plugins/config` - 플러그인 설정 생성
+- `PUT /api/plugins/config/<id>` - 플러그인 설정 수정
+- `DELETE /api/plugins/config/<id>` - 플러그인 설정 삭제
+- `POST /api/plugins/config/<id>/execute` - 플러그인 액션 실행
+
+## 보안
+
+- ✅ **비밀번호 해싱**: bcrypt 사용
+- ✅ **세션 기반 인증**: Flask session
+- ✅ **역할 기반 접근 제어**: admin/guest
+- ✅ **환경 변수 분리**: .env 파일
+- ⚠️ **HTTPS**: 운영 환경에서 적용 필요
+- ⚠️ **CSRF 보호**: 추가 구현 필요
