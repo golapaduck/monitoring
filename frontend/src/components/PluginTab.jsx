@@ -6,25 +6,36 @@ export default function PluginTab({ programId }) {
   const [availablePlugins, setAvailablePlugins] = useState([])
   const [configuredPlugins, setConfiguredPlugins] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [selectedPlugin, setSelectedPlugin] = useState(null)
   const [showConfigModal, setShowConfigModal] = useState(false)
   const [showActionModal, setShowActionModal] = useState(false)
 
   useEffect(() => {
-    loadPlugins()
+    if (programId) {
+      loadPlugins()
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [programId])
 
   const loadPlugins = async () => {
     try {
+      setError(null)
+      console.log('플러그인 로딩 시작, programId:', programId)
+      
       const [availableRes, configuredRes] = await Promise.all([
         axios.get('/api/plugins/available'),
         axios.get(`/api/plugins/program/${programId}`)
       ])
+      
+      console.log('사용 가능한 플러그인:', availableRes.data)
+      console.log('설정된 플러그인:', configuredRes.data)
+      
       setAvailablePlugins(availableRes.data)
       setConfiguredPlugins(configuredRes.data)
     } catch (error) {
       console.error('플러그인 로드 실패:', error)
+      setError(error.message || '플러그인을 불러오는데 실패했습니다')
     } finally {
       setLoading(false)
     }
@@ -45,6 +56,24 @@ export default function PluginTab({ programId }) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="text-gray-500">로딩 중...</div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-3" />
+          <p className="text-red-600 font-medium mb-2">플러그인 로드 실패</p>
+          <p className="text-sm text-gray-500 mb-4">{error}</p>
+          <button
+            onClick={loadPlugins}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            다시 시도
+          </button>
+        </div>
       </div>
     )
   }

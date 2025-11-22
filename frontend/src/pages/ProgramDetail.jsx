@@ -309,7 +309,13 @@ export default function ProgramDetail() {
 
         {activeTab === 'plugins' && (
           <div className="bg-white rounded-lg shadow p-6">
-            <PluginTab programId={program.id} />
+            {program && program.id ? (
+              <PluginTab programId={program.id} />
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                프로그램 정보를 불러오는 중...
+              </div>
+            )}
           </div>
         )}
       </div>
