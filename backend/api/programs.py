@@ -135,6 +135,11 @@ def start(program_id):
         webhook_urls = program.get("webhook_urls")
         send_webhook_notification(program["name"], "start", f"사용자: {session.get('user')}, PID: {pid}", "success", webhook_urls)
         
+        # 캐시 무효화 (즉시 상태 반영)
+        cache = get_cache()
+        cache.delete("programs_status")
+        print(f"🗑️ [Programs API] 캐시 무효화: programs_status")
+        
         # 즉시 상태 확인 요청 (빠른 감지)
         request_immediate_check()
     
@@ -209,6 +214,11 @@ def stop(program_id):
             db_log_event(program_id, "stop", f"사용자: {session.get('user')}, 타입: {stop_type}")
             webhook_urls = program.get("webhook_urls")
             send_webhook_notification(program["name"], "stop", f"사용자: {session.get('user')}, 타입: {stop_type}", "warning", webhook_urls)
+            
+            # 캐시 무효화 (즉시 상태 반영)
+            cache = get_cache()
+            cache.delete("programs_status")
+            print(f"🗑️ [Programs API] 캐시 무효화: programs_status")
             
             # 즉시 상태 확인 요청 (빠른 감지)
             request_immediate_check()
