@@ -61,14 +61,15 @@ echo ========================================
 echo.
 echo 📦 백엔드 + 프론트엔드 통합 서버
 echo 🌐 URL: http://localhost:8080
+echo ⚡ WSGI 서버: Waitress
 echo.
 echo 서버를 중지하려면 Ctrl+C를 누르세요
 echo ========================================
 echo.
 
-:: Python 서버 실행
+:: Waitress WSGI 서버 실행 (프로덕션)
 cd backend
-python -u app.py
+python -u serve.py
 
 :: 서버 종료 후 .env 복원
 cd ..
@@ -113,14 +114,15 @@ echo ========================================
 echo.
 echo 📦 백엔드 + 프론트엔드 통합 서버
 echo 🌐 URL: http://localhost:8080
+echo ⚡ WSGI 서버: Waitress
 echo.
 echo 서버를 중지하려면 Ctrl+C를 누르세요
 echo ========================================
 echo.
 
-:: Python 서버 실행
+:: Waitress WSGI 서버 실행 (프로덕션)
 cd backend
-python -u app.py
+python -u serve.py
 
 :: 서버 종료 후 .env 복원
 cd ..
