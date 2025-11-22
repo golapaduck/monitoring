@@ -56,21 +56,18 @@ export default function DashboardPage({ user, onLogout }) {
     fetchPrograms()
   }, [fetchPrograms])
 
-  // 웹소켓이 연결되지 않은 경우에만 폴링 (1초 간격 - 빠른 동기화)
-  // 웹소켓 연결 시 폴링 중지 (실시간 업데이트 사용)
+  // REST API 폴링 (2초 간격)
   useEffect(() => {
     if (!isConnected) {
-      console.log('📡 [Dashboard] 웹소켓 미연결 - 폴링 시작 (1초 간격)')
+      console.log('📡 [Dashboard] REST API 폴링 시작 (2초 간격)')
       const interval = setInterval(() => {
         fetchPrograms()
-      }, 1000)  // 2초 → 1초로 단축 (더 빠른 상태 동기화)
+      }, 2000)  // 2초마다 상태 조회
 
       return () => {
         clearInterval(interval)
         console.log('📡 [Dashboard] 폴링 중지')
       }
-    } else {
-      console.log('🔌 [Dashboard] 웹소켓 연결됨 - 폴링 중지, 실시간 업데이트 사용')
     }
   }, [isConnected, fetchPrograms])
 

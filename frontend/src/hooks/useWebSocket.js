@@ -9,8 +9,8 @@ import { useState } from 'react'
 // import { io } from 'socket.io-client'
 
 export function useWebSocket() {
-  // 항상 연결된 것으로 간주 (REST API 사용)
-  const [isConnected] = useState(true)
+  // Socket.IO 제거 - 항상 연결 안 됨 (REST API 폴링 사용)
+  const [isConnected] = useState(false)
 
   // 더미 함수들 (호환성 유지)
   const subscribe = () => {}
