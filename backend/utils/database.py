@@ -95,6 +95,21 @@ def init_database():
         )
     """)
     
+    # 플러그인 설정 테이블
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS plugin_configs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            program_id INTEGER NOT NULL,
+            plugin_id TEXT NOT NULL,
+            config TEXT,
+            enabled INTEGER DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (program_id) REFERENCES programs(id) ON DELETE CASCADE,
+            UNIQUE(program_id, plugin_id)
+        )
+    """)
+    
     # 인덱스 생성
     cursor.execute("""
         CREATE INDEX IF NOT EXISTS idx_programs_name ON programs(name)
@@ -421,6 +436,101 @@ def cleanup_old_resource_usage(days=7):
     conn.commit()
     conn.close()
     return deleted
+
+
+# === 플러그인 관련 함수 ===
+
+def save_plugin_config(program_id, plugin_id, config, enabled=True):
+    """플러그인 설정 저장.
+    
+    Args:
+        program_id: 프로그램 ID
+        plugin_id: 플러그인 ID
+        config: 플러그인 설정 (dict)
+        enabled: 활성화 여부
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO plugin_configs (program_id, plugin_id, config, enabled)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(program_id, plugin_id) DO UPDATE SET
+            config = excluded.config,
+            enabled = excluded.enabled,
+            updated_at = CURRENT_TIMESTAMP
+    """, (program_id, plugin_id, json.dumps(config), 1 if enabled else 0))
+    conn.commit()
+    conn.close()
+
+
+def get_plugin_config(program_id, plugin_id):
+    """플러그인 설정 조회.
+    
+    Args:
+        program_id: 프로그램 ID
+        plugin_id: 플러그인 ID
+        
+    Returns:
+        dict: 플러그인 설정 또는 None
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT config, enabled FROM plugin_configs
+        WHERE program_id = ? AND plugin_id = ?
+    """, (program_id, plugin_id))
+    row = cursor.fetchone()
+    conn.close()
+    
+    if row:
+        return {
+            "config": json.loads(row["config"]) if row["config"] else {},
+            "enabled": bool(row["enabled"])
+        }
+    return None
+
+
+def get_program_plugins(program_id):
+    """프로그램의 모든 플러그인 설정 조회.
+    
+    Args:
+        program_id: 프로그램 ID
+        
+    Returns:
+        list: 플러그인 설정 목록
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT plugin_id, config, enabled FROM plugin_configs
+        WHERE program_id = ?
+    """, (program_id,))
+    plugins = []
+    for row in cursor.fetchall():
+        plugins.append({
+            "plugin_id": row["plugin_id"],
+            "config": json.loads(row["config"]) if row["config"] else {},
+            "enabled": bool(row["enabled"])
+        })
+    conn.close()
+    return plugins
+
+
+def delete_plugin_config(program_id, plugin_id):
+    """플러그인 설정 삭제.
+    
+    Args:
+        program_id: 프로그램 ID
+        plugin_id: 플러그인 ID
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        DELETE FROM plugin_configs
+        WHERE program_id = ? AND plugin_id = ?
+    """, (program_id, plugin_id))
+    conn.commit()
+    conn.close()
 
 
 if __name__ == "__main__":

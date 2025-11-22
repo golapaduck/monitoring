@@ -61,11 +61,13 @@ from api.status import status_api
 from api.webhook import webhook_api
 from api.file_explorer import file_explorer_api
 from api.metrics import metrics_api
+from api.plugins import plugins_api
 app.register_blueprint(programs_api)
 app.register_blueprint(status_api)
 app.register_blueprint(webhook_api)
 app.register_blueprint(file_explorer_api)
 app.register_blueprint(metrics_api)
+app.register_blueprint(plugins_api)
 
 
 if __name__ == "__main__":
