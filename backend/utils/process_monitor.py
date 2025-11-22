@@ -7,7 +7,8 @@ import logging
 from utils.process_manager import get_process_status
 from utils.webhook import send_webhook_notification
 from utils.database import get_all_programs, log_program_event, record_resource_usage
-from utils.websocket import emit_program_status, emit_resource_update
+# WebSocket 제거 (REST API 폴링으로 대체)
+# from utils.websocket import emit_program_status, emit_resource_update
 
 # 로거 설정
 logger = logging.getLogger(__name__)
@@ -148,11 +149,11 @@ class ProcessMonitor:
                     remove_program_pid(program_id)
                     print(f"🗑️ [Process Monitor] 데이터베이스 PID 초기화: {program_name}")
                     
-                    # 웹소켓으로 상태 변경 전송 (즉시)
-                    emit_program_status(program_id, {
-                        'running': False,
-                        'pid': None
-                    })
+                    # 웹소켓 제거 (REST API 폴링으로 대체)
+                    # emit_program_status(program_id, {
+                    #     'running': False,
+                    #     'pid': None
+                    # })
                     
                     # Prometheus 메트릭 기록
                     from utils.prometheus_metrics import record_process_status_change
@@ -160,10 +161,11 @@ class ProcessMonitor:
                     
                 elif not was_running and is_running:
                     # 프로세스가 시작됨
-                    emit_program_status(program_id, {
-                        'running': True,
-                        'pid': current_pid
-                    })
+                    # emit_program_status(program_id, {
+                    #     'running': True,
+                    #     'pid': current_pid
+                    # })
+                    pass
                     
                     # Prometheus 메트릭 기록
                     from utils.prometheus_metrics import record_process_status_change
@@ -282,11 +284,12 @@ class ProcessMonitor:
                         # 데이터베이스에 기록
                         record_resource_usage(program_id, cpu_percent, memory_mb)
                         
-                        # 웹소켓으로 리소스 업데이트 전송
-                        emit_resource_update(program_id, {
-                            'cpu_percent': round(cpu_percent, 2),
-                            'memory_mb': round(memory_mb, 2)
-                        })
+                        # 웹소켓 제거 (REST API 폴링으로 대체)
+                        # emit_resource_update(program_id, {
+                        #     'cpu_percent': round(cpu_percent, 2),
+                        #     'memory_mb': round(memory_mb, 2)
+                        # })
+                        pass
                     except json.JSONDecodeError:
                         # PowerShell 파싱 실패 시 psutil 폴백
                         self._collect_metrics_psutil(program_id, pid)
@@ -327,11 +330,12 @@ class ProcessMonitor:
                 # 버퍼 실패 시 직접 저장
                 record_resource_usage(program_id, cpu_percent, memory_mb)
             
-            # 웹소켓으로 리소스 업데이트 전송
-            emit_resource_update(program_id, {
-                'cpu_percent': round(cpu_percent, 2),
-                'memory_mb': round(memory_mb, 2)
-            })
+            # 웹소켓 제거 (REST API 폴링으로 대체)
+            # emit_resource_update(program_id, {
+            #     'cpu_percent': round(cpu_percent, 2),
+            #     'memory_mb': round(memory_mb, 2)
+            # })
+            pass
         
         except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
             # 프로세스가 종료되었거나 접근 권한이 없는 경우 무시

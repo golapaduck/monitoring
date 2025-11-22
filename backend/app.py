@@ -50,9 +50,9 @@ from utils.prometheus_metrics import init_prometheus, prometheus_middleware
 init_prometheus(app)
 prometheus_middleware(app)
 
-# SocketIO 초기화
-from utils.websocket import init_socketio
-socketio = init_socketio(app)
+# SocketIO 제거 (REST API 폴링으로 대체)
+# from utils.websocket import init_socketio
+# socketio = init_socketio(app)
 
 # 세션 타임아웃 설정
 app.permanent_session_lifetime = timedelta(seconds=Config.PERMANENT_SESSION_LIFETIME)
@@ -252,13 +252,10 @@ app.register_blueprint(health_api)
 
 if __name__ == "__main__":
     # Config에서 설정 읽기
-    # SocketIO 사용 시 socketio.run() 사용
-    socketio.run(
-        app,
+    # 개발 모드에서는 Flask 내장 서버 사용
+    app.run(
         host=Config.FLASK_HOST,
         port=Config.FLASK_PORT,
         debug=Config.FLASK_DEBUG,
-        use_reloader=False,  # 자동 재시작 비활성화
-        allow_unsafe_werkzeug=True,  # 개발 모드에서 Werkzeug 사용 허용
-        log_output=True  # 로그 출력 활성화
+        use_reloader=False  # 자동 재시작 비활성화
     )
