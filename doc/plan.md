@@ -71,6 +71,13 @@
 
 ## 📝 다음 작업 (Phase 3)
 
+### ✅ 환경 변수 설정 개선
+- [x] Palworld shutdown 대기 시간 환경 변수화
+- [x] PALWORLD_SHUTDOWN_WAIT_TIME 추가 (.env.example)
+- [x] palworld.py에서 환경 변수 읽기
+- **완료일:** 2025-11-22
+- **상태:** ✅ 완료
+
 ### 🔜 대기 중인 작업
 > 사용자 지시 대기 중
 

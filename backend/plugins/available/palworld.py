@@ -6,6 +6,7 @@ Palworld 서버를 REST API로 제어하는 플러그인입니다.
 
 import requests
 import json
+import os
 from typing import Dict, Any, Optional, Tuple
 from plugins.base import PluginBase
 
@@ -228,11 +229,13 @@ class PalworldPlugin(PluginBase):
         
         elif action_name == "shutdown_server":
             # shutdown API는 waittime과 message가 required
-            waittime = params.get("waittime", 60)  # 기본 60초
+            # 환경 변수에서 기본 대기 시간 읽기
+            default_wait_time = int(os.getenv("PALWORLD_SHUTDOWN_WAIT_TIME", "30"))
+            waittime = params.get("waittime", default_wait_time)
             try:
                 waittime = int(waittime)
             except (ValueError, TypeError):
-                waittime = 60
+                waittime = default_wait_time
             
             message = params.get("message", "서버가 곧 종료됩니다")
             
