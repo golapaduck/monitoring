@@ -371,17 +371,26 @@ def status():
     if "user" not in session:
         return jsonify({"error": "Unauthorized"}), 401
     
-    # 캐시 확인 (2초 TTL - 실시간 업데이트와 성능 균형)
+    programs = get_all_programs()
+    
+    # Graceful Shutdown 중인 프로그램이 있는지 확인
+    has_shutting_down = any(
+        program.get("shutdown_start") and program.get("shutdown_end")
+        for program in programs
+    )
+    
+    # Graceful Shutdown 중이면 캐시 사용 안 함 (실시간 카운트다운 필요)
     cache = get_cache()
     cache_key = "programs_status"
-    cached_status = cache.get(cache_key)
-    if cached_status is not None:
-        print(f"📦 [Status API] 캐시 히트 - {len(cached_status.get('programs_status', []))}개 프로그램")
-        return jsonify(cached_status)
     
-    print("🔍 [Status API] 캐시 미스 - 새로 조회")
+    if not has_shutting_down:
+        cached_status = cache.get(cache_key)
+        if cached_status is not None:
+            print(f"📦 [Status API] 캐시 히트 - {len(cached_status.get('programs_status', []))}개 프로그램")
+            return jsonify(cached_status)
     
-    programs = get_all_programs()
+    print("🔍 [Status API] 캐시 미스 - 새로 조회" + (" (Graceful Shutdown 진행 중)" if has_shutting_down else ""))
+    
     status_list = []
     
     for program in programs:
@@ -456,9 +465,13 @@ def status():
     }
     save_json(STATUS_JSON, status_data)
     
-    # 캐시에 저장 (2초 - 웹소켓 업데이트 간격과 동기화)
-    cache.set(cache_key, status_data)
-    print(f"💾 [Status API] 캐시 저장 - {len(status_list)}개 프로그램")
+    # 캐시에 저장 (Graceful Shutdown 중이 아닐 때만)
+    if not has_shutting_down:
+        cache.set(cache_key, status_data)
+        print(f"💾 [Status API] 캐시 저장 - {len(status_list)}개 프로그램")
+    else:
+        print(f"⏳ [Status API] 캐시 저장 안 함 (Graceful Shutdown 진행 중) - {len(status_list)}개 프로그램")
+    
     print(f"📤 [Status API] 응답 데이터: {status_data}")
     
     return jsonify(status_data)
