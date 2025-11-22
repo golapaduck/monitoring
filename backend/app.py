@@ -108,34 +108,31 @@ start_process_monitor(check_interval=3)
 # 앱 종료 시 모니터 중지
 atexit.register(stop_process_monitor)
 
-# 백업 스케줄 시작 (매일 자정)
-from utils.backup import perform_full_backup
-import threading
-import schedule
-
-def backup_scheduler():
-    """백업 스케줄러."""
-    schedule.every().day.at("00:00").do(perform_full_backup)
-    while True:
-        schedule.run_pending()
-        import time
-        time.sleep(60)
-
-backup_thread = threading.Thread(target=backup_scheduler, daemon=True, name="BackupScheduler")
-backup_thread.start()
-print("[Backup] 백업 스케줄러 시작 (매일 자정)")
-
-# 앱 종료 시 백업 수행
-def final_backup():
-    """앱 종료 시 최종 백업."""
-    print("[Backup] 앱 종료 시 최종 백업 수행")
-    perform_full_backup()
-
-atexit.register(final_backup)
-
 # === 에러 핸들러 등록 ===
-from utils.error_handler import register_error_handlers
-register_error_handlers(app)
+from utils.exceptions import MonitoringError
+
+@app.errorhandler(MonitoringError)
+def handle_monitoring_error(error):
+    """커스텀 예외 처리."""
+    return jsonify(error.to_dict()), error.status_code
+
+@app.errorhandler(404)
+def handle_not_found(error):
+    """404 Not Found 처리."""
+    return jsonify({
+        "success": False,
+        "error": "요청한 리소스를 찾을 수 없습니다",
+        "error_code": "NOT_FOUND"
+    }), 404
+
+@app.errorhandler(500)
+def handle_internal_error(error):
+    """500 Internal Server Error 처리."""
+    return jsonify({
+        "success": False,
+        "error": "서버 내부 오류가 발생했습니다",
+        "error_code": "INTERNAL_SERVER_ERROR"
+    }), 500
 
 # === 성능 모니터링 API 등록 ===
 from utils.performance_monitor import create_performance_api
@@ -157,7 +154,6 @@ from api.powershell import powershell_api
 from api.metrics import metrics_api
 from api.plugins import plugins_api
 from api.system import system_api
-from api.health import health_api
 app.register_blueprint(programs_api)
 app.register_blueprint(status_api)
 app.register_blueprint(webhook_api)
@@ -167,7 +163,6 @@ app.register_blueprint(powershell_api)
 app.register_blueprint(metrics_api)
 app.register_blueprint(plugins_api)
 app.register_blueprint(system_api)
-app.register_blueprint(health_api)
 
 # === 프론트엔드 빌드 파일 서빙 (프로덕션 모드) ===
 # 프론트엔드 빌드 디렉토리 경로

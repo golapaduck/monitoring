@@ -110,26 +110,76 @@ def run_prod():
         print("✅ 프론트엔드 빌드 파일 확인됨")
     print()
     
+    # Waitress 서버 실행
     print("🔧 백엔드 시작 중...")
     print()
-    print("=" * 70)
-    print("✅ 서버가 시작되었습니다")
-    print("=" * 70)
-    print()
-    print("📍 접속 주소: http://localhost:8080")
-    print("📊 시스템 리소스: http://localhost:8080/api/system/stats")
-    print("📋 프로그램 목록: http://localhost:8080/api/programs")
-    print()
-    print("종료하려면: Ctrl + C")
-    print()
-    print("=" * 70)
-    print()
     
-    # 프로덕션 서버 실행
+    # 백엔드 디렉토리를 Python 경로에 추가
+    sys.path.insert(0, str(BACKEND_DIR))
+    
     try:
-        subprocess.run([sys.executable, "serve.py"], cwd=PROJECT_ROOT)
+        from waitress import serve
+        from app import app
+        from config import Config
+        import multiprocessing
+        
+        # CPU 코어 수 기반 최적 스레드 수 계산
+        CPU_COUNT = multiprocessing.cpu_count()
+        OPTIMAL_THREADS = max(4, CPU_COUNT * 2)
+        
+        # 환경 변수에서 설정 읽기
+        THREADS = int(os.getenv('WAITRESS_THREADS', OPTIMAL_THREADS))
+        CHANNEL_TIMEOUT = int(os.getenv('WAITRESS_CHANNEL_TIMEOUT', '120'))
+        CONNECTION_LIMIT = int(os.getenv('WAITRESS_CONNECTION_LIMIT', '100'))
+        RECV_BYTES = int(os.getenv('WAITRESS_RECV_BYTES', '8192'))
+        SEND_BYTES = int(os.getenv('WAITRESS_SEND_BYTES', '8192'))
+        
+        print("=" * 70)
+        print("✅ 서버가 시작되었습니다")
+        print("=" * 70)
+        print(f"📍 서버 주소: http://{Config.FLASK_HOST}:{Config.FLASK_PORT}")
+        print(f"🔒 디버그 모드: OFF")
+        print(f"⚡ WSGI 서버: Waitress (최적화됨)")
+        print(f"💻 CPU 코어: {CPU_COUNT}개")
+        print(f"🧵 워커 스레드: {THREADS}개")
+        print(f"🔗 최대 연결: {CONNECTION_LIMIT}개")
+        print(f"⏱️ 채널 타임아웃: {CHANNEL_TIMEOUT}초")
+        print(f"📦 프론트엔드: 빌드된 정적 파일 서빙")
+        print(f"🌐 웹소켓: Socket.IO 지원")
+        print("=" * 70)
+        print()
+        print("📍 접속 주소: http://localhost:8080")
+        print("📊 시스템 리소스: http://localhost:8080/api/system/stats")
+        print("📋 프로그램 목록: http://localhost:8080/api/programs")
+        print()
+        print("종료하려면: Ctrl + C")
+        print()
+        print("=" * 70)
+        print()
+        
+        # Waitress 서버 실행
+        serve(
+            app,
+            host=Config.FLASK_HOST,
+            port=Config.FLASK_PORT,
+            threads=THREADS,
+            connection_limit=CONNECTION_LIMIT,
+            channel_timeout=CHANNEL_TIMEOUT,
+            recv_bytes=RECV_BYTES,
+            send_bytes=SEND_BYTES,
+            cleanup_interval=30,
+            asyncore_use_poll=True,
+            url_scheme='http',
+            _quiet=False,
+            _profile=False,
+            backlog=1024,
+            ipv4=True,
+            ipv6=False,
+        )
     except KeyboardInterrupt:
         print("\n\n🛑 서버 종료됨")
+    except Exception as e:
+        print(f"\n\n❌ 서버 실행 오류: {str(e)}")
 
 
 def run_deploy():
