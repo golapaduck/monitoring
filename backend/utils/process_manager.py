@@ -300,10 +300,10 @@ def stop_program(program_path: str, force: bool = False) -> Tuple[bool, str]:
             
             if force:
                 # PowerShell 강제 종료 스크립트
-                script = f'Get-Process -Name "{Path(program_name).stem}" -ErrorAction SilentlyContinue | Stop-Process -Force'
+                script = f'Get-Process -Name "{Path(program_name).stem}" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue'
             else:
                 # PowerShell 일반 종료 스크립트
-                script = f'Get-Process -Name "{Path(program_name).stem}" -ErrorAction SilentlyContinue | Stop-Process'
+                script = f'Get-Process -Name "{Path(program_name).stem}" -ErrorAction SilentlyContinue | Stop-Process -ErrorAction SilentlyContinue'
             
             command_id = agent.execute(script, timeout=10)
             command = agent.get_command(command_id)
@@ -315,20 +315,26 @@ def stop_program(program_path: str, force: bool = False) -> Tuple[bool, str]:
                     break
                 time.sleep(0.1)
             
-            if command.result or command.error == "":
-                msg = "프로그램과 모든 자식 프로세스가 강제 종료되었습니다." if force else "프로그램이 종료되었습니다."
+            # PowerShell 명령 실행 후 프로세스 상태 확인
+            time.sleep(0.5)  # 프로세스 종료 대기
+            is_running, _ = get_process_status(program_path)
+            
+            if not is_running:
+                # 프로세스가 실제로 종료됨
+                msg = "프로그램이 강제 종료되었습니다." if force else "프로그램이 종료되었습니다."
                 print(f"✅ [Process Manager] 종료 성공: {program_name}")
                 return True, msg
             else:
-                # PowerShell 실패 시 psutil로 폴백
-                print(f"⚠️ [Process Manager] PowerShell 종료 실패, psutil로 재시도: {program_name}")
+                # 프로세스가 여전히 실행 중 - psutil로 재시도
+                print(f"⚠️ [Process Manager] PowerShell 종료 실패 (프로세스 여전히 실행 중), psutil로 재시도: {program_name}")
                 return _stop_with_psutil(program_path, force)
         
         except RuntimeError:
             # 에이전트 미초기화 시 psutil 사용
+            print(f"⚠️ [Process Manager] PowerShell 에이전트 미초기화, psutil로 진행: {program_name}")
             return _stop_with_psutil(program_path, force)
         except Exception as e:
-            print(f"⚠️ [Process Manager] PowerShell 종료 오류: {str(e)}")
+            print(f"⚠️ [Process Manager] PowerShell 종료 오류: {str(e)}, psutil로 재시도")
             return _stop_with_psutil(program_path, force)
             
     except Exception as e:
@@ -360,6 +366,11 @@ def _stop_with_psutil(program_path: str, force: bool = False) -> Tuple[bool, str
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue
         
+        if not processes_to_kill:
+            # 프로세스를 찾을 수 없음 (이미 종료됨)
+            print(f"ℹ️ [Process Manager] 실행 중인 프로세스 없음: {program_name}")
+            return True, "프로그램이 이미 종료되었습니다."
+        
         # 2단계: 각 프로세스와 자식 프로세스 종료
         for proc in processes_to_kill:
             try:
@@ -370,18 +381,25 @@ def _stop_with_psutil(program_path: str, force: bool = False) -> Tuple[bool, str
                 for child in children:
                     try:
                         print(f"🔹 [Process Manager] 자식 프로세스 종료: {child.name()} (PID: {child.pid})")
-                        child.terminate()
+                        if force:
+                            child.kill()
+                        else:
+                            child.terminate()
                     except (psutil.NoSuchProcess, psutil.AccessDenied):
                         pass
                 
                 # 부모 프로세스 종료
                 print(f"🔸 [Process Manager] 부모 프로세스 종료: {proc.name()} (PID: {proc.pid})")
-                proc.terminate()
+                if force:
+                    proc.kill()
+                else:
+                    proc.terminate()
                 killed = True
                 
                 # 종료 대기 (최대 3초)
                 try:
                     proc.wait(timeout=3)
+                    print(f"✅ [Process Manager] 프로세스 종료 완료: {proc.name()} (PID: {proc.pid})")
                 except psutil.TimeoutExpired:
                     # 강제 종료
                     print(f"⚠️ [Process Manager] 강제 종료: {proc.name()} (PID: {proc.pid})")
@@ -397,11 +415,12 @@ def _stop_with_psutil(program_path: str, force: bool = False) -> Tuple[bool, str
                 continue
         
         if killed:
-            return True, "프로그램과 모든 자식 프로세스가 종료되었습니다."
+            return True, "프로그램이 종료되었습니다."
         else:
             # 프로그램이 실행 중이 아니면 성공으로 처리
             return True, "프로그램이 이미 종료되었습니다."
     except Exception as e:
+        print(f"💥 [Process Manager] psutil 종료 오류: {str(e)}")
         return False, f"종료 실패: {str(e)}"
 
 
