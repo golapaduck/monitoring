@@ -56,13 +56,13 @@ export default function DashboardPage({ user, onLogout }) {
     fetchPrograms()
   }, [fetchPrograms])
 
-  // REST API 폴링 (2초 간격)
+  // REST API 폴링 (5초 간격)
   useEffect(() => {
     if (!isConnected) {
-      console.log('📡 [Dashboard] REST API 폴링 시작 (2초 간격)')
+      console.log('📡 [Dashboard] REST API 폴링 시작 (5초 간격)')
       const interval = setInterval(() => {
         fetchPrograms()
-      }, 2000)  // 2초마다 상태 조회
+      }, 5000)  // 5초마다 상태 조회 (서버 부하 감소)
 
       return () => {
         clearInterval(interval)
