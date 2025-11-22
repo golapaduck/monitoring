@@ -299,14 +299,22 @@ class PalworldPlugin(PluginBase):
             # Palworld REST API는 Basic Auth 사용: username은 "admin", password는 AdminPassword
             auth = ("admin", self.password) if self.password else None
             
+            # 명시적으로 헤더 설정
+            headers = {
+                "Accept": "application/json",
+                "Content-Type": "application/json"
+            }
+            
             print(f"[Palworld Plugin] API 요청: {method} {url}")
             print(f"[Palworld Plugin] Password 존재: {bool(self.password)}, 길이: {len(self.password) if self.password else 0}")
             print(f"[Palworld Plugin] Auth: {('admin', '***') if auth else None}")
+            print(f"[Palworld Plugin] Headers: {headers}")
             
             response = requests.request(
                 method=method,
                 url=url,
                 auth=auth,
+                headers=headers,
                 timeout=10,
                 **kwargs
             )
