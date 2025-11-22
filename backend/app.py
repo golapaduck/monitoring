@@ -160,5 +160,6 @@ if __name__ == "__main__":
         port=Config.FLASK_PORT,
         debug=Config.FLASK_DEBUG,
         use_reloader=False,  # 자동 재시작 비활성화
-        allow_unsafe_werkzeug=True  # 개발 모드에서 Werkzeug 사용 허용
+        allow_unsafe_werkzeug=True,  # 개발 모드에서 Werkzeug 사용 허용
+        log_output=True  # 로그 출력 활성화
     )

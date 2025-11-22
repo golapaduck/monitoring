@@ -22,10 +22,13 @@ def init_socketio(app):
     global socketio
     socketio = SocketIO(
         app,
-        cors_allowed_origins="*",  # 개발 시 모든 origin 허용
-        async_mode='threading',     # threading 모드 사용
-        logger=False,               # 로깅 비활성화 (선택)
-        engineio_logger=False       # Engine.IO 로깅 비활성화
+        cors_allowed_origins="*",     # 개발 시 모든 origin 허용
+        async_mode='threading',        # threading 모드 사용
+        logger=True,                   # 로깅 활성화 (디버깅용)
+        engineio_logger=False,         # Engine.IO 로깅은 비활성화
+        ping_timeout=60,               # ping 타임아웃 (초)
+        ping_interval=25,              # ping 간격 (초)
+        max_http_buffer_size=1000000   # HTTP 버퍼 크기
     )
     
     # 이벤트 핸들러 등록
@@ -41,13 +44,19 @@ def register_handlers():
     @socketio.on('connect')
     def handle_connect():
         """클라이언트 연결 시."""
-        print(f"🔌 [WebSocket] 클라이언트 연결: {request.sid}")
-        emit('connected', {'message': '웹소켓 연결 성공'})
+        try:
+            print(f"🔌 [WebSocket] 클라이언트 연결: {request.sid}")
+            emit('connected', {'message': '웹소켓 연결 성공'})
+        except Exception as e:
+            print(f"❌ [WebSocket] 연결 오류: {str(e)}")
     
     @socketio.on('disconnect')
     def handle_disconnect():
         """클라이언트 연결 해제 시."""
-        print(f"🔌 [WebSocket] 클라이언트 연결 해제: {request.sid}")
+        try:
+            print(f"🔌 [WebSocket] 클라이언트 연결 해제: {request.sid}")
+        except Exception as e:
+            print(f"❌ [WebSocket] 연결 해제 오류: {str(e)}")
     
     @socketio.on('subscribe')
     def handle_subscribe(data):
@@ -56,9 +65,19 @@ def register_handlers():
         Args:
             data: {'event': 'program_status'} 형태
         """
-        event_type = data.get('event')
-        print(f"🔌 [WebSocket] 구독 요청: {event_type} (클라이언트: {request.sid})")
-        emit('subscribed', {'event': event_type, 'status': 'success'})
+        try:
+            event_type = data.get('event')
+            print(f"🔌 [WebSocket] 구독 요청: {event_type} (클라이언트: {request.sid})")
+            emit('subscribed', {'event': event_type, 'status': 'success'})
+        except Exception as e:
+            print(f"❌ [WebSocket] 구독 오류: {str(e)}")
+    
+    @socketio.on_error_default
+    def default_error_handler(e):
+        """기본 에러 핸들러."""
+        print(f"❌ [WebSocket] 에러 발생: {str(e)}")
+        import traceback
+        traceback.print_exc()
 
 
 def emit_program_status(program_id, status_data):
