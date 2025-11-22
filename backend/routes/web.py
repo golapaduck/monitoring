@@ -28,37 +28,54 @@ def index():
 
 @web_bp.route("/login", methods=["GET", "POST"])
 def login():
-    """로그인 페이지 및 처리."""
+    """로그인 페이지 및 처리.
+    
+    보안 기능:
+    - bcrypt 기반 비밀번호 검증
+    - 세션 고정 공격 방지 (로그인 후 세션 재생성)
+    - 일반적인 오류 메시지 (사용자명 존재 여부 미노출)
+    - Rate limiting 적용 (Flask-Limiter)
+    """
     error = None
     
     if request.method == "POST":
         username = request.form.get("username", "").strip()
         password = request.form.get("password", "").strip()
         
-        # SQLite에서 사용자 조회
-        user = get_user_by_username(username)
-        
-        # 사용자가 존재하고 비밀번호가 일치하는지 확인
-        if user and verify_password(password, user["password"]):
-            # 세션을 영구적으로 설정 (타임아웃 적용)
-            session.permanent = True
-            session["user"] = username
-            session["role"] = user["role"]
-            
-            logger.info(f"사용자 '{username}' 로그인 성공 (역할: {user['role']})")
-            
-            # React 프론트엔드에서 요청한 경우 JSON 응답
-            if request.accept_mimetypes.accept_json and not request.accept_mimetypes.accept_html:
-                return jsonify({"success": True, "user": {"username": username, "role": user["role"]}}), 200
-            
-            return redirect(url_for("web.dashboard"))
+        # 입력값 검증
+        if not username or not password:
+            error = "아이디와 비밀번호를 입력해주세요."
+            logger.warning("로그인 실패: 입력값 누락")
         else:
-            error = "아이디 또는 비밀번호가 올바르지 않습니다."
-            logger.warning(f"로그인 실패: {username}")
+            # SQLite에서 사용자 조회
+            user = get_user_by_username(username)
             
-            # React 프론트엔드에서 요청한 경우 JSON 응답
-            if request.accept_mimetypes.accept_json and not request.accept_mimetypes.accept_html:
-                return jsonify({"success": False, "error": error}), 401
+            # 사용자가 존재하고 비밀번호가 일치하는지 확인
+            if user and verify_password(password, user["password"]):
+                # 🔒 세션 고정 공격 방지: 로그인 전 세션 초기화
+                session.clear()
+                
+                # 세션을 영구적으로 설정 (타임아웃 적용)
+                session.permanent = True
+                session["user"] = username
+                session["role"] = user["role"]
+                session["login_time"] = __import__('time').time()  # 로그인 시간 기록
+                
+                logger.info(f"✅ 사용자 '{username}' 로그인 성공 (역할: {user['role']})")
+                
+                # React 프론트엔드에서 요청한 경우 JSON 응답
+                if request.accept_mimetypes.accept_json and not request.accept_mimetypes.accept_html:
+                    return jsonify({"success": True, "user": {"username": username, "role": user["role"]}}), 200
+                
+                return redirect(url_for("web.dashboard"))
+            else:
+                # 🔒 정보 누출 방지: 일반적인 오류 메시지
+                error = "아이디 또는 비밀번호가 올바르지 않습니다."
+                logger.warning(f"❌ 로그인 실패: {username if username else '(입력 없음)'}")
+                
+                # React 프론트엔드에서 요청한 경우 JSON 응답
+                if request.accept_mimetypes.accept_json and not request.accept_mimetypes.accept_html:
+                    return jsonify({"success": False, "error": error}), 401
     
     return render_template("login.html", error=error)
 
