@@ -59,20 +59,24 @@ export default function DashboardPage({ user, onLogout }) {
     fetchPrograms()
   }, [fetchPrograms])
 
-  // REST API 폴링 (5초 간격)
+  // REST API 폴링 (동적 간격: Graceful Shutdown 중 1초, 일반 5초)
   useEffect(() => {
     if (!isConnected) {
-      console.log('📡 [Dashboard] REST API 폴링 시작 (5초 간격)')
+      // Graceful Shutdown 중인 프로그램이 있는지 확인
+      const hasShuttingDown = programs.some(p => p.status === 'shutting_down')
+      const pollInterval = hasShuttingDown ? 1000 : 5000
+      
+      console.log(`📡 [Dashboard] REST API 폴링 시작 (${pollInterval / 1000}초 간격)`)
       const interval = setInterval(() => {
         fetchPrograms()
-      }, 5000)  // 5초마다 상태 조회 (서버 부하 감소)
+      }, pollInterval)
 
       return () => {
         clearInterval(interval)
         console.log('📡 [Dashboard] 폴링 중지')
       }
     }
-  }, [isConnected, fetchPrograms])
+  }, [isConnected, fetchPrograms, programs])
 
   // 수동 새로고침
   const handleRefresh = () => {
