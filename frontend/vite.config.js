@@ -57,6 +57,30 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: '../backend/static/dist',
       emptyOutDir: true,
+      // 번들 최적화
+      rollupOptions: {
+        output: {
+          // 청크 분할 전략
+          manualChunks: {
+            // 벤더 라이브러리 분리
+            'vendor': ['react', 'react-dom', 'react-router-dom'],
+            'ui': ['lucide-react'],
+            'chart': ['recharts'],
+            'socket': ['socket.io-client'],
+          },
+        },
+      },
+      // 번들 크기 경고 임계값
+      chunkSizeWarningLimit: 500,
+      // 소스맵 비활성화 (프로덕션)
+      sourcemap: false,
+      // 최소화 설정
+      minify: 'terser',
+      terserOptions: {
+        compress: {
+          drop_console: true,  // console.log 제거
+        },
+      },
     },
   }
 })
