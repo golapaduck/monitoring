@@ -31,8 +31,9 @@ export default function PluginTab({ programId }) {
       console.log('사용 가능한 플러그인:', availableRes.data)
       console.log('설정된 플러그인:', configuredRes.data)
       
-      setAvailablePlugins(availableRes.data)
-      setConfiguredPlugins(configuredRes.data)
+      // API 응답이 {plugins: [...]} 형태
+      setAvailablePlugins(availableRes.data.plugins || availableRes.data || [])
+      setConfiguredPlugins(configuredRes.data.plugins || configuredRes.data || [])
     } catch (error) {
       console.error('플러그인 로드 실패:', error)
       setError(error.message || '플러그인을 불러오는데 실패했습니다')
