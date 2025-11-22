@@ -266,8 +266,32 @@
 - ✅ 에러 처리: 100%
 - ✅ 문서화: 100%
 - ✅ 선택적 개선: 100% (모든 작업 완료!)
+- ✅ 추가 기능: 100% (파일 감시 + 작업 큐)
 
 **결론:** 프로덕션 배포 준비 완료!
+
+---
+
+## 📝 추가 완료 작업
+
+### 작업 8: 상세 페이지 ✅
+- 이미 구현됨 (ProgramDetail.jsx)
+- 프로그램 상세 정보
+- 리소스 차트
+- 플러그인 탭
+
+### 작업 9: Watchdog 파일 감시 ✅
+- utils/file_watcher.py 구현
+- FileWatcher 클래스
+- LogFileWatcher 클래스
+- ProgramFileWatcher 클래스
+
+### 작업 10: 잡/메세지 큐 ✅
+- utils/job_queue.py 구현
+- api/jobs.py 구현
+- Job 클래스 (상태 관리)
+- JobQueue 클래스 (3개 워커)
+- API 엔드포인트
 
 ---
 
