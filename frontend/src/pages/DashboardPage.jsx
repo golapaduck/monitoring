@@ -17,10 +17,13 @@ export default function DashboardPage({ user, onLogout }) {
   // 프로그램 상태 조회
   const fetchPrograms = useCallback(async () => {
     try {
+      console.log('📡 [Dashboard] 프로그램 상태 조회 중...')
       const data = await getProgramsStatus()
+      console.log('📊 [Dashboard] 응답 데이터:', data)
+      console.log('📋 [Dashboard] 프로그램 목록:', data.programs_status)
       setPrograms(data.programs_status || [])
     } catch (error) {
-      console.error('프로그램 상태 조회 실패:', error)
+      console.error('❌ [Dashboard] 프로그램 상태 조회 실패:', error)
     } finally {
       setLoading(false)
       setRefreshing(false)

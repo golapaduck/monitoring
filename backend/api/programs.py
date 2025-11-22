@@ -361,8 +361,10 @@ def status():
     cache_key = "programs_status"
     cached_status = cache.get(cache_key)
     if cached_status is not None:
-        logger.debug("프로그램 상태 캐시 히트")
+        print(f"📦 [Status API] 캐시 히트 - {len(cached_status.get('programs_status', []))}개 프로그램")
         return jsonify(cached_status)
+    
+    print("🔍 [Status API] 캐시 미스 - 새로 조회")
     
     programs = get_all_programs()
     status_list = []
@@ -408,7 +410,8 @@ def status():
     
     # 캐시에 저장 (2초 - 웹소켓 업데이트 간격과 동기화)
     cache.set(cache_key, status_data)
-    logger.debug(f"프로그램 상태 캐시 저장: {len(status_list)}개")
+    print(f"💾 [Status API] 캐시 저장 - {len(status_list)}개 프로그램")
+    print(f"📤 [Status API] 응답 데이터: {status_data}")
     
     return jsonify(status_data)
 

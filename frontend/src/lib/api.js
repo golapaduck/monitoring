@@ -59,7 +59,10 @@ export async function getPrograms() {
  * 프로그램 상태 조회
  */
 export async function getProgramsStatus() {
-  return apiRequest('/api/programs/status')
+  console.log('🌐 [API] GET /api/programs/status 요청')
+  const result = await apiRequest('/api/programs/status')
+  console.log('✅ [API] GET /api/programs/status 응답:', result)
+  return result
 }
 
 /**
