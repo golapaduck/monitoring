@@ -24,8 +24,8 @@ export default function PalworldControl({ programId }) {
       
       if (palworldPlugin) {
         setPlugin(palworldPlugin)
-        await loadServerInfo(palworldPlugin)
-        await loadPlayers(palworldPlugin)
+        // 초기 로드 시 서버 정보와 플레이어 목록은 로드하지 않음
+        // 사용자가 필요할 때 "새로고침" 버튼으로 로드하도록 변경
       }
     } catch (error) {
       console.error('플러그인 로드 실패:', error)
@@ -158,7 +158,7 @@ export default function PalworldControl({ programId }) {
             disabled={actionLoading}
             className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
           >
-            새로고침
+            {serverInfo ? '새로고침' : '조회'}
           </button>
         </div>
         {serverInfo ? (
@@ -173,7 +173,7 @@ export default function PalworldControl({ programId }) {
             </div>
           </dl>
         ) : (
-          <p className="text-sm text-gray-500">서버 정보를 불러올 수 없습니다</p>
+          <p className="text-sm text-gray-500">💡 "조회" 버튼을 클릭하여 서버 정보를 불러오세요</p>
         )}
       </div>
 
@@ -189,7 +189,7 @@ export default function PalworldControl({ programId }) {
             disabled={actionLoading}
             className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
           >
-            새로고침
+            {players.length > 0 ? '새로고침' : '조회'}
           </button>
         </div>
         {players.length > 0 ? (
@@ -221,7 +221,7 @@ export default function PalworldControl({ programId }) {
             ))}
           </div>
         ) : (
-          <p className="text-sm text-gray-500">접속 중인 플레이어가 없습니다</p>
+          <p className="text-sm text-gray-500">💡 "조회" 버튼을 클릭하여 플레이어 목록을 불러오세요</p>
         )}
       </div>
 
