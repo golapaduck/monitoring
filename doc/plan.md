@@ -226,10 +226,11 @@
   - AuthContext 분리
   - apiService try-catch 제거
   
-- [ ] print() → logger 변경 (1시간)
+- [x] print() → logger 변경 (완료: 2025-11-22)
+  - api/programs.py, routes/web.py 변경 완료
   - 표준 로깅으로 전환
   - 레벨별 필터링 가능
-  - 선택사항
+  - 나머지 파일은 선택사항
 
 ### Low Priority
 - [ ] 타입 힌트 추가 (2시간)
