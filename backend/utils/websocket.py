@@ -69,10 +69,13 @@ def emit_program_status(program_id, status_data):
         status_data: 상태 데이터 (running, pid 등)
     """
     if socketio:
+        print(f"🔌 [WebSocket] 프로그램 상태 전송: ID={program_id}, data={status_data}")
         socketio.emit('program_status', {
             'program_id': program_id,
             'data': status_data
         })
+    else:
+        print("⚠️ [WebSocket] SocketIO가 초기화되지 않음")
 
 
 def emit_resource_update(program_id, metrics):

@@ -27,7 +27,6 @@ def get_process_status(program_path, pid=None):
                 
                 # 프로세스가 존재하고 실행 중인지 확인
                 if not proc.is_running():
-                    print(f"🔍 [Process Manager] PID {pid} 프로세스가 실행 중이 아님")
                     # PID는 존재하지만 실행 중이 아니면 2단계로
                     return _find_by_name(program_name)
                 
@@ -38,16 +37,13 @@ def get_process_status(program_path, pid=None):
                     
                     # 이름 일치 확인
                     if proc_name == program_name:
-                        print(f"✅ [Process Manager] PID {pid} + 이름 '{program_name}' 일치 확인")
                         return True, pid
                     
                     # 전체 경로로도 확인
                     if proc_exe and Path(proc_exe).name.lower() == program_name:
-                        print(f"✅ [Process Manager] PID {pid} + 경로 '{program_name}' 일치 확인")
                         return True, pid
                     
                     # PID는 존재하지만 이름이 다름 (프로세스 재사용 가능성)
-                    print(f"⚠️ [Process Manager] PID {pid} 존재하지만 이름 불일치: {proc_name} != {program_name}")
                     return _find_by_name(program_name)
                     
                 except (psutil.AccessDenied, psutil.NoSuchProcess) as e:
@@ -82,18 +78,15 @@ def _find_by_name(program_name):
             try:
                 # 프로세스 이름으로 비교
                 if proc.info['name'] and proc.info['name'].lower() == program_name:
-                    print(f"🔍 [Process Manager] 이름으로 발견: {program_name} (PID: {proc.info['pid']})")
                     return True, proc.info['pid']
                 
                 # 실행 파일 경로로도 비교 (더 정확함)
                 if proc.info['exe'] and Path(proc.info['exe']).name.lower() == program_name:
-                    print(f"🔍 [Process Manager] 경로로 발견: {program_name} (PID: {proc.info['pid']})")
                     return True, proc.info['pid']
                     
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue
         
-        print(f"❌ [Process Manager] 프로세스 없음: {program_name}")
         return False, None
         
     except Exception as e:
