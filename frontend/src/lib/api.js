@@ -163,6 +163,19 @@ export async function getWebhookConfig() {
 }
 
 /**
+ * 플러그인 액션 실행
+ */
+export async function executePluginAction(programId, pluginId, action, params = {}) {
+  return apiRequest(`/api/plugins/program/${programId}/${pluginId}/action`, {
+    method: 'POST',
+    body: JSON.stringify({
+      action,
+      params
+    })
+  })
+}
+
+/**
  * 웹훅 설정 저장
  */
 export async function saveWebhookConfig(config) {

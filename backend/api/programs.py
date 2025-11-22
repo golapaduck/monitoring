@@ -38,6 +38,7 @@ from utils.database import (
 )
 from utils.process_monitor import mark_intentional_stop, request_immediate_check
 from utils.path_validator import validate_program_path, normalize_path, get_path_info
+from plugins.loader import get_plugin_loader
 
 
 @programs_api.route("", methods=["GET", "POST"])
@@ -163,7 +164,29 @@ def stop(program_id):
         # 의도적 종료 표시 (프로세스 모니터가 crash로 감지하지 않도록)
         mark_intentional_stop(program["name"])
         
-        success, message = stop_program(program["path"], force=force)
+        # 펠월드 플러그인이 있으면 API를 사용하여 종료
+        loader = get_plugin_loader()
+        palworld_plugin = loader.get_plugin_instance(program_id, "palworld")
+        
+        if palworld_plugin and not force:
+            # 펠월드 API를 사용하여 정상 종료
+            print(f"🎮 [Programs API] 펠월드 API를 사용하여 서버 종료: {program['name']}")
+            result = palworld_plugin.execute_action("shutdown_server", {
+                "waittime": "30",
+                "message": "관리자가 서버를 종료합니다"
+            })
+            
+            if result.get("success"):
+                print(f"✅ [Programs API] 펠월드 API 종료 성공: {program['name']}")
+                success = True
+                message = "펠월드 API를 사용하여 서버를 종료했습니다"
+            else:
+                # API 실패 시 일반 종료로 폴백
+                print(f"⚠️ [Programs API] 펠월드 API 종료 실패, 일반 종료로 폴백: {result.get('message')}")
+                success, message = stop_program(program["path"], force=False)
+        else:
+            # 일반 종료
+            success, message = stop_program(program["path"], force=force)
         
         # PID 제거
         if success:

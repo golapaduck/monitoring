@@ -1,12 +1,16 @@
 import { useState, memo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Play, Square, ExternalLink } from 'lucide-react'
-import { startProgram, stopProgram } from '../lib/api'
+import { Play, Square, ExternalLink, Zap } from 'lucide-react'
+import { startProgram, stopProgram, executePluginAction } from '../lib/api'
 
 function ProgramCard({ program, onUpdate, user }) {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
+  const [showPluginActions, setShowPluginActions] = useState(false)
   const isAdmin = user?.role === 'admin'
+  
+  // 펠월드 플러그인 여부 확인
+  const hasPalworldPlugin = program.plugins?.some(p => p.plugin_id === 'palworld')
 
   const handleToggle = async () => {
     setLoading(true)
@@ -21,6 +25,25 @@ function ProgramCard({ program, onUpdate, user }) {
       alert(`작업 실패: ${error.message}`)
     } finally {
       setLoading(false)
+    }
+  }
+
+  // 펠월드 플러그인 액션 실행
+  const handlePalworldAction = async (actionName) => {
+    setLoading(true)
+    try {
+      const result = await executePluginAction(program.id, 'palworld', actionName, {})
+      if (result.success) {
+        alert(`✅ ${actionName} 성공`)
+        onUpdate()
+      } else {
+        alert(`❌ 실패: ${result.message}`)
+      }
+    } catch (error) {
+      alert(`작업 실패: ${error.message}`)
+    } finally {
+      setLoading(false)
+      setShowPluginActions(false)
     }
   }
 
@@ -94,27 +117,93 @@ function ProgramCard({ program, onUpdate, user }) {
       {/* 액션 버튼 */}
       <div className="flex flex-wrap gap-2">
         {isAdmin && (
-          <button
-            onClick={handleToggle}
-            disabled={loading}
-            className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
-              program.running
-                ? 'bg-red-600 hover:bg-red-700 text-white'
-                : 'bg-green-600 hover:bg-green-700 text-white'
-            }`}
-          >
-            {program.running ? (
-              <>
-                <Square className="w-4 h-4" />
-                Off
-              </>
-            ) : (
-              <>
-                <Play className="w-4 h-4" />
-                On
-              </>
+          <>
+            <button
+              onClick={handleToggle}
+              disabled={loading}
+              className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
+                program.running
+                  ? 'bg-red-600 hover:bg-red-700 text-white'
+                  : 'bg-green-600 hover:bg-green-700 text-white'
+              }`}
+            >
+              {program.running ? (
+                <>
+                  <Square className="w-4 h-4" />
+                  Off
+                </>
+              ) : (
+                <>
+                  <Play className="w-4 h-4" />
+                  On
+                </>
+              )}
+            </button>
+
+            {/* 펠월드 플러그인 액션 버튼 */}
+            {hasPalworldPlugin && program.running && (
+              <div className="relative">
+                <button
+                  onClick={() => setShowPluginActions(!showPluginActions)}
+                  disabled={loading}
+                  className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-purple-600 hover:bg-purple-700 text-white transition-colors disabled:opacity-50"
+                  title="펠월드 서버 관리"
+                >
+                  <Zap className="w-4 h-4" />
+                  조작
+                </button>
+
+                {/* 펠월드 액션 드롭다운 */}
+                {showPluginActions && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                    <button
+                      onClick={() => handlePalworldAction('get_info')}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 border-b border-gray-100"
+                    >
+                      📊 서버 정보 조회
+                    </button>
+                    <button
+                      onClick={() => handlePalworldAction('get_players')}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 border-b border-gray-100"
+                    >
+                      👥 플레이어 목록
+                    </button>
+                    <button
+                      onClick={() => handlePalworldAction('save_world')}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 border-b border-gray-100"
+                    >
+                      💾 월드 저장
+                    </button>
+                    <button
+                      onClick={() => {
+                        const message = prompt('공지사항을 입력하세요:')
+                        if (message) {
+                          executePluginAction(program.id, 'palworld', 'announce', { message })
+                            .then(result => {
+                              if (result.success) {
+                                alert('✅ 공지사항 전송 성공')
+                              } else {
+                                alert(`❌ 실패: ${result.message}`)
+                              }
+                            })
+                            .catch(error => alert(`작업 실패: ${error.message}`))
+                        }
+                      }}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 border-b border-gray-100"
+                    >
+                      📢 공지사항 전송
+                    </button>
+                    <button
+                      onClick={() => handlePalworldAction('shutdown_server')}
+                      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                    >
+                      🛑 서버 종료
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
-          </button>
+          </>
         )}
       </div>
 
