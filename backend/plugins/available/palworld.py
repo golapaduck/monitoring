@@ -6,7 +6,7 @@ Palworld 서버를 REST API로 제어하는 플러그인입니다.
 
 import requests
 import json
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Tuple
 from plugins.base import PluginBase
 
 
