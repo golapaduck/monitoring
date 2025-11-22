@@ -48,10 +48,11 @@ def run_dev():
     # 프론트엔드 프로세스
     print("🎨 프론트엔드 시작 중...")
     frontend_process = subprocess.Popen(
-        [sys.executable, "-m", "npm", "run", "dev"],
+        ["npm.cmd", "run", "dev"],
         cwd=FRONTEND_DIR,
         stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE
+        stderr=subprocess.PIPE,
+        shell=True
     )
     print("✅ 프론트엔드 시작됨 (PID: {})".format(frontend_process.pid))
     print()
@@ -109,10 +110,11 @@ def run_prod(auto_build=True):
         
         print("📦 npm install 실행 중...")
         result = subprocess.run(
-            ["npm", "install"],
+            ["npm.cmd", "install"],
             cwd=FRONTEND_DIR,
             capture_output=True,
-            text=True
+            text=True,
+            shell=True
         )
         if result.returncode != 0:
             print("❌ npm install 실패!")
@@ -122,10 +124,11 @@ def run_prod(auto_build=True):
         
         print("🏗️ 프론트엔드 빌드 중...")
         result = subprocess.run(
-            ["npm", "run", "build"],
+            ["npm.cmd", "run", "build"],
             cwd=FRONTEND_DIR,
             capture_output=True,
-            text=True
+            text=True,
+            shell=True
         )
         if result.returncode != 0:
             print("❌ 프론트엔드 빌드 실패!")
@@ -218,8 +221,9 @@ def run_deploy():
     # 1. 프론트엔드 빌드
     print("[1/4] 프론트엔드 빌드 중...")
     result = subprocess.run(
-        ["npm", "run", "build"],
-        cwd=FRONTEND_DIR
+        ["npm.cmd", "run", "build"],
+        cwd=FRONTEND_DIR,
+        shell=True
     )
     if result.returncode != 0:
         print("❌ 프론트엔드 빌드 실패!")
