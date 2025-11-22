@@ -184,6 +184,8 @@ def stop(program_id):
                 success = True
                 message = f"펠월드 API를 사용하여 서버를 종료했습니다 (약 {shutdown_wait_time}초 소요)"
                 shutdown_time = shutdown_wait_time
+                # Graceful shutdown: PID는 즉시 제거하지 않음 (Process Monitor가 자연스럽게 감지)
+                print(f"⏳ [Programs API] Graceful shutdown 대기 중: {program['name']} ({shutdown_wait_time}초)")
             else:
                 # API 실패 시 일반 종료로 폴백
                 print(f"⚠️ [Programs API] 펠월드 API 종료 실패, 일반 종료로 폴백: {result.get('message')}")
@@ -192,10 +194,14 @@ def stop(program_id):
             # 일반 종료
             success, message = stop_program(program["path"], force=force)
         
-        # PID 제거
-        if success:
+        # PID 제거 (graceful shutdown이 아닌 경우만)
+        if success and shutdown_time is None:
+            # 일반 종료: 즉시 PID 제거
             remove_program_pid(program_id)
             print(f"🗑️ [Programs API] PID 제거: {program['name']}")
+        elif success and shutdown_time is not None:
+            # Graceful shutdown: PID 유지 (Process Monitor가 종료 감지 후 제거)
+            print(f"⏳ [Programs API] PID 유지 (Graceful shutdown 진행 중): {program['name']}")
         
         # 로그 기록 및 웹훅 알림
         if success:
