@@ -24,6 +24,7 @@ class PalworldPlugin(PluginBase):
             port = config.get("port", 8212)
             self.base_url = f"http://{host}:{port}/v1/api"
             self.password = config.get("password", "")
+            print(f"[Palworld Plugin] 초기화 - host: {host}, port: {port}, password 길이: {len(self.password)}")
     
     def get_name(self) -> str:
         return "Palworld REST API"
@@ -297,6 +298,10 @@ class PalworldPlugin(PluginBase):
             url = f"{self.base_url}{endpoint}"
             # Palworld REST API는 Basic Auth 사용: username은 "admin", password는 AdminPassword
             auth = ("admin", self.password) if self.password else None
+            
+            print(f"[Palworld Plugin] API 요청: {method} {url}")
+            print(f"[Palworld Plugin] Password 존재: {bool(self.password)}, 길이: {len(self.password) if self.password else 0}")
+            print(f"[Palworld Plugin] Auth: {('admin', '***') if auth else None}")
             
             response = requests.request(
                 method=method,
