@@ -53,6 +53,11 @@ migrate_from_json()
 init_pool(str(DB_PATH), pool_size=5)
 print("[Database] DB 연결 풀 초기화 완료")
 
+# 작업 큐 초기화 (3개 워커)
+from utils.job_queue import init_job_queue
+init_job_queue(max_workers=3)
+print("[JobQueue] 작업 큐 초기화 완료")
+
 # 플러그인 시스템 초기화 및 저장된 플러그인 자동 로드
 from plugins.loader import get_plugin_loader
 loader = get_plugin_loader()  # 전역 싱글톤 인스턴스 사용
@@ -122,12 +127,14 @@ from api.programs import programs_api
 from api.status import status_api
 from api.webhook import webhook_api
 from api.file_explorer import file_explorer_api
+from api.jobs import jobs_api
 from api.metrics import metrics_api
 from api.plugins import plugins_api
 app.register_blueprint(programs_api)
 app.register_blueprint(status_api)
 app.register_blueprint(webhook_api)
 app.register_blueprint(file_explorer_api)
+app.register_blueprint(jobs_api)
 app.register_blueprint(metrics_api)
 app.register_blueprint(plugins_api)
 
