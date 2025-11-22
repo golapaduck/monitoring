@@ -51,10 +51,15 @@ def register_handlers():
             print(f"❌ [WebSocket] 연결 오류: {str(e)}")
     
     @socketio.on('disconnect')
-    def handle_disconnect():
-        """클라이언트 연결 해제 시."""
+    def handle_disconnect(sid=None):
+        """클라이언트 연결 해제 시.
+        
+        Args:
+            sid: 클라이언트 세션 ID (Flask-SocketIO에서 자동 전달)
+        """
         try:
-            print(f"🔌 [WebSocket] 클라이언트 연결 해제: {request.sid}")
+            client_sid = sid or request.sid
+            print(f"🔌 [WebSocket] 클라이언트 연결 해제: {client_sid}")
         except Exception as e:
             print(f"❌ [WebSocket] 연결 해제 오류: {str(e)}")
     
