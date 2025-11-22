@@ -12,11 +12,3 @@ timeout /t 2 /nobreak >nul
 
 echo [2/2] Starting Frontend Server...
 start "Frontend (React)" cmd /k "cd frontend && npm run dev"
-
-echo.
-echo ========================================
-echo   Servers Started!
-echo   - Backend:  http://localhost:25575
-echo   - Frontend: http://localhost:5173
-echo ========================================
-echo.

@@ -5,6 +5,7 @@ import axios from 'axios'
 import { startProgram, stopProgram, restartProgram, deleteProgram } from '../lib/api'
 import EditProgramModal from '../components/EditProgramModal'
 import ResourceChart from '../components/ResourceChart'
+import PluginTab from '../components/PluginTab'
 
 export default function ProgramDetail() {
   const { id } = useParams()
@@ -297,8 +298,7 @@ export default function ProgramDetail() {
 
         {activeTab === 'plugins' && (
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">플러그인</h2>
-            <p className="text-gray-500">플러그인 관리 UI가 여기에 표시됩니다.</p>
+            <PluginTab programId={program.id} />
           </div>
         )}
       </div>
