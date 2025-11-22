@@ -129,16 +129,10 @@ def run_prod(auto_build=True):
         result = subprocess.run(
             ["npm.cmd", "run", "build"],
             cwd=FRONTEND_DIR,
-            capture_output=True,
-            text=True,
-            shell=True,
-            encoding='utf-8',
-            errors='ignore'
+            shell=True
         )
         if result.returncode != 0:
             print("❌ 프론트엔드 빌드 실패!")
-            if result.stderr:
-                print(result.stderr)
             return False
         print("✅ 프론트엔드 빌드 완료")
     else:
