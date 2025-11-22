@@ -71,9 +71,9 @@ function ProgramCard({ program, onUpdate, user }) {
         <div className="flex items-center gap-2">
           {/* 상태 배지 */}
           <span
-            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 ${
               program.status === 'shutting_down'
-                ? 'bg-yellow-100 text-yellow-800'
+                ? 'bg-yellow-100 text-yellow-800 animate-pulse'
                 : program.running
                 ? 'bg-green-100 text-green-800'
                 : 'bg-red-100 text-red-800'
@@ -86,8 +86,26 @@ function ProgramCard({ program, onUpdate, user }) {
         </div>
       </div>
 
+      {/* Graceful Shutdown 프로그레스 바 */}
+      {program.status === 'shutting_down' && program.shutdown_remaining !== null && (
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-medium text-yellow-700">서버 종료 진행 중</span>
+            <span className="text-xs font-semibold text-yellow-800">{program.shutdown_remaining}초</span>
+          </div>
+          <div className="w-full bg-yellow-100 rounded-full h-2 overflow-hidden">
+            <div 
+              className="bg-yellow-500 h-2 rounded-full transition-all duration-1000 ease-linear"
+              style={{ 
+                width: `${((30 - program.shutdown_remaining) / 30) * 100}%` 
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       {/* 리소스 정보 */}
-      {program.running && (
+      {(program.running || program.status === 'shutting_down') && (
         <div className="grid grid-cols-3 gap-4 mb-4 p-3 bg-gray-50 rounded-lg">
           <div>
             <p className="text-xs text-gray-500 mb-1">CPU</p>
@@ -124,14 +142,21 @@ function ProgramCard({ program, onUpdate, user }) {
           <>
             <button
               onClick={handleToggle}
-              disabled={loading}
-              className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
-                program.running
+              disabled={loading || program.status === 'shutting_down'}
+              className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                program.status === 'shutting_down'
+                  ? 'bg-yellow-600 text-white'
+                  : program.running
                   ? 'bg-red-600 hover:bg-red-700 text-white'
                   : 'bg-green-600 hover:bg-green-700 text-white'
               }`}
             >
-              {program.running ? (
+              {program.status === 'shutting_down' ? (
+                <>
+                  <Square className="w-4 h-4 animate-spin" />
+                  종료 중...
+                </>
+              ) : program.running ? (
                 <>
                   <Square className="w-4 h-4" />
                   Off
