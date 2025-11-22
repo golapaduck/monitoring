@@ -77,37 +77,63 @@ def run_dev():
         print("✅ 종료됨")
 
 
-def run_prod():
-    """프로덕션 모드 실행 (Waitress)."""
+def run_prod(auto_build=True):
+    """프로덕션 모드 실행 (Waitress WSGI 서버).
+    
+    Args:
+        auto_build: 자동 빌드 여부 (기본: True)
+    """
     print("\n" + "=" * 70)
-    print("🚀 Monitoring System - Production Mode (Waitress WSGI)")
+    print("🚀 Monitoring System - Production Mode")
     print("=" * 70)
     print()
     
     # 환경 변수 설정
     os.environ['PRODUCTION'] = 'True'
     os.environ['FLASK_ENV'] = 'production'
+    os.environ['FLASK_DEBUG'] = 'False'
     
     print("📝 환경 변수 설정:")
     print("  - PRODUCTION=True")
     print("  - FLASK_ENV=production")
+    print("  - FLASK_DEBUG=False")
     print()
     
-    # 프론트엔드 빌드 확인
-    dist_path = FRONTEND_DIR / "dist"
-    if not dist_path.exists():
-        print("⚠️  프론트엔드 빌드 파일이 없습니다!")
-        print("빌드 중...")
+    # 프론트엔드 빌드 확인 및 자동 빌드
+    dist_dir = FRONTEND_DIR / "dist"
+    if auto_build or not dist_dir.exists():
+        if not dist_dir.exists():
+            print("⚠️ 프론트엔드 빌드 파일이 없습니다.")
+        else:
+            print("🔄 프론트엔드 재빌드 중...")
+        
+        print("📦 npm install 실행 중...")
+        result = subprocess.run(
+            ["npm", "install"],
+            cwd=FRONTEND_DIR,
+            capture_output=True,
+            text=True
+        )
+        if result.returncode != 0:
+            print("❌ npm install 실패!")
+            print(result.stderr)
+            return False
+        print("✅ npm install 완료")
+        
+        print("🏗️ 프론트엔드 빌드 중...")
         result = subprocess.run(
             ["npm", "run", "build"],
-            cwd=FRONTEND_DIR
+            cwd=FRONTEND_DIR,
+            capture_output=True,
+            text=True
         )
         if result.returncode != 0:
             print("❌ 프론트엔드 빌드 실패!")
+            print(result.stderr)
             return False
         print("✅ 프론트엔드 빌드 완료")
     else:
-        print("✅ 프론트엔드 빌드 파일 확인됨")
+        print("✅ 프론트엔드 빌드 파일 확인됨 (재빌드 스킵)")
     print()
     
     # Waitress 서버 실행
@@ -365,17 +391,25 @@ def main():
         action='store_true',
         help='성능 확인'
     )
+    parser.add_argument(
+        '--no-build',
+        action='store_true',
+        help='프로덕션 모드에서 빌드 스킵 (빌드 파일이 이미 있는 경우)'
+    )
     
     args = parser.parse_args()
     
-    # 기본값: 프로덕션 모드
+    # 기본값: 프로덕션 모드 (자동 빌드 포함)
     if not any([args.dev, args.prod, args.deploy, args.check]):
-        args.prod = True
-    
-    if args.dev:
+        print("\n💡 기본 모드: 프로덕션 (빌드 → 배포)")
+        print("   다른 모드: --dev (개발), --deploy (배포만), --check (성능 확인)")
+        print()
+        run_prod(auto_build=True)
+    elif args.dev:
         run_dev()
     elif args.prod:
-        run_prod()
+        # --no-build 플래그에 따라 빌드 여부 결정
+        run_prod(auto_build=not args.no_build)
     elif args.deploy:
         if not run_deploy():
             sys.exit(1)
