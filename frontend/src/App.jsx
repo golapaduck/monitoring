@@ -16,20 +16,26 @@ function App() {
 
   const checkSession = async () => {
     try {
-      // 세션이 유효한지 확인하는 API 호출
-      const response = await fetch('/api/programs', {
+      // 세션 확인 전용 API 호출
+      const response = await fetch('/api/session', {
         credentials: 'include'
       })
       
       if (response.ok) {
+        const data = await response.json()
         setIsAuthenticated(true)
-        // 사용자 정보는 세션에서 가져옴
+        setUser({
+          username: data.user,
+          role: data.role
+        })
       } else {
         setIsAuthenticated(false)
+        setUser(null)
       }
     } catch (error) {
       console.error('세션 확인 실패:', error)
       setIsAuthenticated(false)
+      setUser(null)
     } finally {
       setLoading(false)
     }

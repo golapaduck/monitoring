@@ -9,6 +9,7 @@ export default function DashboardPage({ user, onLogout }) {
   const [loading, setLoading] = useState(true)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
+  const isAdmin = user?.role === 'admin'
 
   // 프로그램 상태 조회
   const fetchPrograms = async () => {
@@ -137,16 +138,18 @@ export default function DashboardPage({ user, onLogout }) {
           </div>
         </div>
 
-        {/* 프로그램 추가 버튼 */}
-        <div className="mb-6">
-          <button
-            onClick={() => setIsAddModalOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-          >
-            <Plus className="w-5 h-5" />
-            프로그램 추가
-          </button>
-        </div>
+        {/* 프로그램 추가 버튼 (관리자만) */}
+        {isAdmin && (
+          <div className="mb-6">
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+            >
+              <Plus className="w-5 h-5" />
+              프로그램 추가
+            </button>
+          </div>
+        )}
 
         {/* 프로그램 목록 */}
         {programs.length === 0 ? (
@@ -161,6 +164,7 @@ export default function DashboardPage({ user, onLogout }) {
                 key={program.id}
                 program={program}
                 onUpdate={fetchPrograms}
+                user={user}
               />
             ))}
           </div>

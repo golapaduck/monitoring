@@ -85,6 +85,21 @@ def dashboard():
     )
 
 
+@web_bp.route("/api/session")
+def check_session():
+    """세션 확인 API - 프론트엔드 인증 체크용."""
+    from flask import jsonify
+    
+    if "user" not in session:
+        return jsonify({"authenticated": False}), 401
+    
+    return jsonify({
+        "authenticated": True,
+        "user": session.get("user"),
+        "role": session.get("role")
+    }), 200
+
+
 @web_bp.route("/health")
 def health():
     """헬스체크 엔드포인트 - 외부 모니터링용."""

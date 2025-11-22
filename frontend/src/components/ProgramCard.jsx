@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import { Play, Square, RotateCw, AlertTriangle, ExternalLink } from 'lucide-react'
 import { startProgram, stopProgram, restartProgram } from '../lib/api'
 
-export default function ProgramCard({ program, onUpdate }) {
+export default function ProgramCard({ program, onUpdate, user }) {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [showForceStop, setShowForceStop] = useState(false)
+  const isAdmin = user?.role === 'admin'
 
   const handleStart = async () => {
     setLoading(true)
@@ -115,14 +116,16 @@ export default function ProgramCard({ program, onUpdate }) {
       {/* 액션 버튼 */}
       <div className="flex flex-wrap gap-2">
         {!program.running ? (
-          <button
-            onClick={handleStart}
-            disabled={loading}
-            className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-          >
-            <Play className="w-4 h-4" />
-            시작
-          </button>
+          isAdmin && (
+            <button
+              onClick={handleStart}
+              disabled={loading}
+              className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+            >
+              <Play className="w-4 h-4" />
+              시작
+            </button>
+          )
         ) : (
           <>
             <button
