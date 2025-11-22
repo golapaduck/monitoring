@@ -98,8 +98,10 @@ def configure_plugin(program_id, plugin_id):
             return jsonify({"error": "플러그인을 찾을 수 없습니다"}), 404
         
         # 임시 인스턴스로 설정 검증
+        print(f"[Plugins API] 설정 검증 시작 - plugin_id: {plugin_id}, config: {config}")
         temp_instance = loader.plugins[plugin_id](program_id=program_id, config=config)
         valid, error = temp_instance.validate_config(config)
+        print(f"[Plugins API] 설정 검증 결과 - valid: {valid}, error: {error}")
         if not valid:
             return jsonify({"error": f"설정 유효성 검사 실패: {error}"}), 400
         
