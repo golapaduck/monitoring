@@ -119,8 +119,8 @@ def login():
     - 세션 고정 공격 방지
     - 일반적인 오류 메시지 (정보 누출 방지)
     """
-    # JSON 데이터 파싱
-    data = request.get_json()
+    # JSON 데이터 파싱 (Content-Type 체크 안 함)
+    data = request.get_json(force=True, silent=True)
     if not data:
         return _create_error_response("잘못된 요청입니다")
     
