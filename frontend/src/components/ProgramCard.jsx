@@ -1,18 +1,12 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Play, Square, RotateCw, Trash2, Settings, AlertTriangle, Edit, BarChart3, Puzzle, ExternalLink } from 'lucide-react'
-import { startProgram, stopProgram, restartProgram, deleteProgram } from '../lib/api'
-import EditProgramModal from './EditProgramModal'
-import ResourceChart from './ResourceChart'
-import PluginModal from './PluginModal'
+import { Play, Square, RotateCw, AlertTriangle, ExternalLink } from 'lucide-react'
+import { startProgram, stopProgram, restartProgram } from '../lib/api'
 
 export default function ProgramCard({ program, onUpdate }) {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [showForceStop, setShowForceStop] = useState(false)
-  const [showEditModal, setShowEditModal] = useState(false)
-  const [showChart, setShowChart] = useState(false)
-  const [showPluginModal, setShowPluginModal] = useState(false)
 
   const handleStart = async () => {
     setLoading(true)
@@ -46,22 +40,6 @@ export default function ProgramCard({ program, onUpdate }) {
       onUpdate()
     } catch (error) {
       alert(`재시작 실패: ${error.message}`)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleDelete = async () => {
-    if (!confirm(`"${program.name}" 프로그램을 삭제하시겠습니까?`)) {
-      return
-    }
-
-    setLoading(true)
-    try {
-      await deleteProgram(program.id)
-      onUpdate()
-    } catch (error) {
-      alert(`삭제 실패: ${error.message}`)
     } finally {
       setLoading(false)
     }
@@ -176,80 +154,13 @@ export default function ProgramCard({ program, onUpdate }) {
           <RotateCw className="w-4 h-4" />
           재시작
         </button>
-
-        <button
-          onClick={() => setShowChart(!showChart)}
-          className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-            showChart
-              ? 'bg-blue-100 text-blue-700 border border-blue-300'
-              : 'border border-gray-300 hover:bg-gray-50 text-gray-700'
-          }`}
-          title="리소스 차트"
-        >
-          <BarChart3 className="w-4 h-4" />
-        </button>
-
-        <button
-          onClick={() => setShowPluginModal(true)}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
-          title="플러그인"
-        >
-          <Puzzle className="w-4 h-4" />
-        </button>
-
-        <button
-          onClick={() => setShowEditModal(true)}
-          disabled={loading}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-        >
-          <Edit className="w-4 h-4" />
-        </button>
-
-        <button
-          onClick={handleDelete}
-          disabled={loading}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
       </div>
-
-      {/* 리소스 차트 */}
-      {showChart && (
-        <div className="mt-4">
-          <ResourceChart programId={program.id} />
-        </div>
-      )}
 
       {/* 로딩 오버레이 */}
       {loading && (
         <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center rounded-lg">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
-      )}
-
-      {/* 수정 모달 */}
-      {showEditModal && (
-        <EditProgramModal
-          program={program}
-          onClose={() => setShowEditModal(false)}
-          onSuccess={() => {
-            setShowEditModal(false)
-            onUpdate()
-          }}
-        />
-      )}
-
-      {/* 플러그인 모달 */}
-      {showPluginModal && (
-        <PluginModal
-          program={program}
-          onClose={() => setShowPluginModal(false)}
-          onSuccess={() => {
-            setShowPluginModal(false)
-            onUpdate()
-          }}
-        />
       )}
     </div>
   )
