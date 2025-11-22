@@ -8,3 +8,7 @@ psutil==5.9.6
 requests==2.31.0
 waitress==3.0.0
 bcrypt==4.1.2
+structlog==24.1.0
+colorama==0.4.6
+pytest==7.4.3
+pytest-cov==4.1.0
