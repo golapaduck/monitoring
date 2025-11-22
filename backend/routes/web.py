@@ -3,6 +3,10 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, jsonify
 from pathlib import Path
 import json
+import logging
+
+# 로거 설정
+logger = logging.getLogger(__name__)
 
 # Blueprint 생성
 web_bp = Blueprint('web', __name__)
@@ -41,7 +45,7 @@ def login():
             session["user"] = username
             session["role"] = user["role"]
             
-            print(f"✅ [Login] 사용자 '{username}' 로그인 성공 (역할: {user['role']})")
+            logger.info(f"사용자 '{username}' 로그인 성공 (역할: {user['role']})")
             
             # React 프론트엔드에서 요청한 경우 JSON 응답
             if request.accept_mimetypes.accept_json and not request.accept_mimetypes.accept_html:
@@ -50,7 +54,7 @@ def login():
             return redirect(url_for("web.dashboard"))
         else:
             error = "아이디 또는 비밀번호가 올바르지 않습니다."
-            print(f"❌ [Login] 로그인 실패: {username}")
+            logger.warning(f"로그인 실패: {username}")
             
             # React 프론트엔드에서 요청한 경우 JSON 응답
             if request.accept_mimetypes.accept_json and not request.accept_mimetypes.accept_html:

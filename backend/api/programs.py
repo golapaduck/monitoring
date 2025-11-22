@@ -2,6 +2,10 @@
 
 from flask import Blueprint, request, session, jsonify
 from datetime import datetime
+import logging
+
+# 로거 설정
+logger = logging.getLogger(__name__)
 
 # Blueprint 생성
 programs_api = Blueprint('programs_api', __name__, url_prefix='/api/programs')
@@ -79,7 +83,7 @@ def programs():
         webhook_urls=webhook_urls
     )
     
-    print(f"✅ [Programs API] 프로그램 등록: {data['name']} -> {normalized_path} (ID: {program_id})")
+    logger.info(f"프로그램 등록: {data['name']} -> {normalized_path} (ID: {program_id})")
     
     return created_response(
         data={"id": program_id, "name": data["name"], "path": normalized_path},
