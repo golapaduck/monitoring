@@ -119,10 +119,22 @@ def login():
     - 세션 고정 공격 방지
     - 일반적인 오류 메시지 (정보 누출 방지)
     """
+    # 디버깅: 요청 정보 출력
+    print(f"[Login Debug] Content-Type: {request.content_type}")
+    print(f"[Login Debug] Request data: {request.data}")
+    print(f"[Login Debug] Request form: {request.form}")
+    
     # JSON 데이터 파싱 (Content-Type 체크 안 함)
     data = request.get_json(force=True, silent=True)
+    
+    # JSON 파싱 실패 시 form 데이터 확인
     if not data:
-        return _create_error_response("잘못된 요청입니다")
+        if request.form:
+            data = request.form.to_dict()
+            print(f"[Login Debug] Using form data: {data}")
+        else:
+            print(f"[Login Debug] No data found")
+            return _create_error_response("잘못된 요청입니다")
     
     username = data.get("username", "").strip()
     password = data.get("password", "").strip()
