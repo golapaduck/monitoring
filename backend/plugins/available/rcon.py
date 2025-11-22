@@ -337,18 +337,25 @@ class RCONPlugin(PluginBase):
     
     def validate_config(self, config: Dict[str, Any]) -> tuple[bool, Optional[str]]:
         """설정 유효성 검사."""
-        if not config.get("host"):
+        host = config.get("host", "").strip()
+        if not host:
             return False, "서버 주소가 필요합니다"
         
-        if not config.get("port"):
+        port = config.get("port")
+        if port is None or port == "":
             return False, "포트가 필요합니다"
         
-        if not config.get("password"):
-            return False, "비밀번호가 필요합니다"
+        # 포트를 정수로 변환 시도
+        try:
+            port = int(port)
+            if port < 1 or port > 65535:
+                return False, "포트는 1-65535 범위여야 합니다"
+        except (ValueError, TypeError):
+            return False, "포트는 숫자여야 합니다"
         
-        port = config.get("port")
-        if not isinstance(port, int) or port < 1 or port > 65535:
-            return False, "포트는 1-65535 범위여야 합니다"
+        password = config.get("password", "").strip()
+        if not password:
+            return False, "비밀번호가 필요합니다"
         
         return True, None
     

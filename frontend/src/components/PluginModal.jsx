@@ -241,7 +241,8 @@ function PluginConfigModal({ program, plugin, onClose, onSuccess }) {
   }
 
   const renderConfigField = (key, schema) => {
-    const value = config[key] || schema.default || ''
+    const value = config[key] !== undefined ? config[key] : (schema.default !== undefined ? schema.default : '')
+    const isNumberType = schema.type === 'integer' || schema.type === 'number'
 
     return (
       <div key={key} className="mb-4">
@@ -253,13 +254,17 @@ function PluginConfigModal({ program, plugin, onClose, onSuccess }) {
           <p className="text-xs text-gray-500 mb-2">{schema.description}</p>
         )}
         <input
-          type={schema.format === 'password' ? 'password' : schema.type === 'number' ? 'number' : 'text'}
+          type={schema.format === 'password' ? 'password' : isNumberType ? 'number' : 'text'}
           value={value}
-          onChange={(e) => setConfig({ ...config, [key]: schema.type === 'number' ? Number(e.target.value) : e.target.value })}
+          onChange={(e) => {
+            const newValue = isNumberType ? (e.target.value === '' ? '' : Number(e.target.value)) : e.target.value
+            setConfig({ ...config, [key]: newValue })
+          }}
           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           required={schema.required}
           min={schema.minimum}
           max={schema.maximum}
+          step={schema.type === 'number' ? 'any' : undefined}
         />
       </div>
     )
