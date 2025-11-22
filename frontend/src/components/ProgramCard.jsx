@@ -169,72 +169,83 @@ function ProgramCard({ program, onUpdate, user }) {
               )}
             </button>
 
-            {/* 펠월드 플러그인 액션 버튼 */}
+            {/* 펠월드 플러그인 토글 버튼 */}
             {hasPalworldPlugin && program.running && (
-              <div className="relative">
-                <button
-                  onClick={() => setShowPluginActions(!showPluginActions)}
-                  disabled={loading}
-                  className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-purple-600 hover:bg-purple-700 text-white transition-colors disabled:opacity-50"
-                  title="펠월드 서버 관리"
-                >
-                  <Zap className="w-4 h-4" />
-                  조작
-                </button>
-
-                {/* 펠월드 액션 드롭다운 */}
-                {showPluginActions && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
-                    <button
-                      onClick={() => handlePalworldAction('get_info')}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 border-b border-gray-100"
-                    >
-                      📊 서버 정보 조회
-                    </button>
-                    <button
-                      onClick={() => handlePalworldAction('get_players')}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 border-b border-gray-100"
-                    >
-                      👥 플레이어 목록
-                    </button>
-                    <button
-                      onClick={() => handlePalworldAction('save_world')}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 border-b border-gray-100"
-                    >
-                      💾 월드 저장
-                    </button>
-                    <button
-                      onClick={() => {
-                        const message = prompt('공지사항을 입력하세요:')
-                        if (message) {
-                          executePluginAction(program.id, 'palworld', 'announce', { message })
-                            .then(result => {
-                              if (result.success) {
-                                alert('✅ 공지사항 전송 성공')
-                              } else {
-                                alert(`❌ 실패: ${result.message}`)
-                              }
-                            })
-                            .catch(error => alert(`작업 실패: ${error.message}`))
-                        }
-                      }}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 border-b border-gray-100"
-                    >
-                      📢 공지사항 전송
-                    </button>
-                    <button
-                      onClick={() => handlePalworldAction('shutdown_server')}
-                      className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                    >
-                      🛑 서버 종료
-                    </button>
-                  </div>
-                )}
-              </div>
+              <button
+                onClick={() => setShowPluginActions(!showPluginActions)}
+                disabled={loading}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-purple-600 hover:bg-purple-700 text-white transition-colors disabled:opacity-50"
+                title="펠월드 서버 관리"
+              >
+                <Zap className="w-4 h-4" />
+                {showPluginActions ? '조작 닫기' : '조작 열기'}
+              </button>
             )}
           </>
         )}
       </div>
+
+      {/* 펠월드 조작 패널 (확장형) */}
+      {hasPalworldPlugin && program.running && showPluginActions && (
+        <div className="mt-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
+          <h4 className="text-sm font-semibold text-purple-900 mb-3 flex items-center gap-2">
+            <Zap className="w-4 h-4" />
+            펠월드 서버 조작
+          </h4>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => handlePalworldAction('get_info')}
+              disabled={loading}
+              className="flex items-center gap-2 px-3 py-2 text-sm bg-white hover:bg-purple-100 text-purple-700 rounded-lg border border-purple-200 transition-colors disabled:opacity-50"
+            >
+              📊 서버 정보
+            </button>
+            <button
+              onClick={() => handlePalworldAction('get_players')}
+              disabled={loading}
+              className="flex items-center gap-2 px-3 py-2 text-sm bg-white hover:bg-purple-100 text-purple-700 rounded-lg border border-purple-200 transition-colors disabled:opacity-50"
+            >
+              👥 플레이어 목록
+            </button>
+            <button
+              onClick={() => handlePalworldAction('save_world')}
+              disabled={loading}
+              className="flex items-center gap-2 px-3 py-2 text-sm bg-white hover:bg-purple-100 text-purple-700 rounded-lg border border-purple-200 transition-colors disabled:opacity-50"
+            >
+              💾 월드 저장
+            </button>
+            <button
+              onClick={() => {
+                const message = prompt('공지사항을 입력하세요:')
+                if (message) {
+                  setLoading(true)
+                  executePluginAction(program.id, 'palworld', 'announce', { message })
+                    .then(result => {
+                      if (result.success) {
+                        alert('✅ 공지사항 전송 성공')
+                      } else {
+                        alert(`❌ 실패: ${result.message}`)
+                      }
+                    })
+                    .catch(error => alert(`작업 실패: ${error.message}`))
+                    .finally(() => setLoading(false))
+                }
+              }}
+              disabled={loading}
+              className="flex items-center gap-2 px-3 py-2 text-sm bg-white hover:bg-purple-100 text-purple-700 rounded-lg border border-purple-200 transition-colors disabled:opacity-50"
+            >
+              📢 공지사항
+            </button>
+            <button
+              onClick={() => handlePalworldAction('shutdown_server')}
+              disabled={loading}
+              className="col-span-2 flex items-center justify-center gap-2 px-3 py-2 text-sm bg-red-50 hover:bg-red-100 text-red-700 rounded-lg border border-red-200 transition-colors disabled:opacity-50"
+            >
+              🛑 서버 종료 (Graceful)
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 로딩 오버레이 */}
       {loading && (
