@@ -40,9 +40,30 @@ users_data = migrate_plain_passwords(users_data)
 save_json(USERS_JSON, users_data)
 
 # SQLite 데이터베이스 초기화 및 마이그레이션
-from utils.database import init_database, migrate_from_json
+from utils.database import init_database, migrate_from_json, get_all_plugin_configs
 init_database()
 migrate_from_json()
+
+# 플러그인 시스템 초기화 및 저장된 플러그인 자동 로드
+from plugins.loader import get_plugin_loader
+loader = get_plugin_loader()  # 전역 싱글톤 인스턴스 사용
+
+# 저장된 플러그인 설정 자동 로드
+saved_plugins = get_all_plugin_configs()
+if saved_plugins:
+    print(f"[Plugin System] 저장된 플러그인 {len(saved_plugins)}개 로드 중...")
+    for plugin_data in saved_plugins:
+        program_id = plugin_data["program_id"]
+        plugin_id = plugin_data["plugin_id"]
+        config = plugin_data["config"]
+        
+        result = loader.load_plugin(program_id, plugin_id, config)
+        if result:
+            print(f"[Plugin System] ✅ {plugin_id} (프로그램 {program_id})")
+        else:
+            print(f"[Plugin System] ❌ {plugin_id} (프로그램 {program_id}) - 로드 실패")
+else:
+    print("[Plugin System] 저장된 플러그인 없음")
 
 # 프로세스 모니터 시작 (10초 간격)
 # 항상 실행 (DEBUG 모드에서도 모니터링 필요)

@@ -516,6 +516,30 @@ def get_program_plugins(program_id):
     return plugins
 
 
+def get_all_plugin_configs():
+    """모든 플러그인 설정 조회 (서버 시작 시 자동 로드용).
+    
+    Returns:
+        list: 모든 플러그인 설정 목록
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT program_id, plugin_id, config, enabled FROM plugin_configs
+        WHERE enabled = 1
+    """)
+    plugins = []
+    for row in cursor.fetchall():
+        plugins.append({
+            "program_id": row["program_id"],
+            "plugin_id": row["plugin_id"],
+            "config": json.loads(row["config"]) if row["config"] else {},
+            "enabled": bool(row["enabled"])
+        })
+    conn.close()
+    return plugins
+
+
 def delete_plugin_config(program_id, plugin_id):
     """플러그인 설정 삭제.
     
