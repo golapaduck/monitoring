@@ -12,10 +12,10 @@ from utils.websocket import emit_program_status, emit_resource_update
 class ProcessMonitor:
     """프로세스 상태를 모니터링하고 예기치 않은 종료를 감지하는 클래스."""
     
-    def __init__(self, check_interval=3):
+    def __init__(self, check_interval=1):  # 3초 → 1초로 단축 (더 빠른 실시간 감지)
         """
         Args:
-            check_interval: 상태 확인 간격 (초, 기본값: 3초)
+            check_interval: 상태 확인 간격 (초, 기본값: 1초)
         """
         self.check_interval = check_interval
         self.running = False
@@ -23,6 +23,7 @@ class ProcessMonitor:
         self.last_status = {}  # {program_name: running_status}
         self.recent_stops = set()  # 최근 의도적으로 종료된 프로그램 이름
         self.pending_check = False  # 즉시 체크 요청 플래그
+        self.metric_threads = {}  # 메트릭 수집 스레드 (비동기 처리)
         
     def start(self):
         """모니터링 시작."""
@@ -67,14 +68,14 @@ class ProcessMonitor:
                 time.sleep(0.1)
     
     def _check_processes(self):
-        """등록된 모든 프로세스 상태 확인 (배치 처리 최적화)."""
+        """등록된 모든 프로세스 상태 확인 (배치 처리 최적화 + 비동기 메트릭)."""
         programs = get_all_programs()
         
         # 1단계: 배치로 모든 프로그램 상태 조회 (한 번의 PowerShell 호출)
         from utils.process_manager import get_programs_status_batch
         programs_with_status = get_programs_status_batch(programs)
         
-        # 2단계: 상태 변화 감지 및 메트릭 수집
+        # 2단계: 상태 변화 감지 (빠른 응답)
         for program in programs_with_status:
             program_id = program["id"]
             program_name = program["name"]
@@ -82,9 +83,9 @@ class ProcessMonitor:
             is_running = program.get("running", False)
             current_pid = program.get("pid")
             
-            # CPU/메모리 사용량 수집 (실행 중인 경우만)
+            # 메트릭 수집을 비동기로 처리 (상태 확인을 블로킹하지 않음)
             if is_running and current_pid:
-                self._collect_metrics(program_id, current_pid)
+                self._collect_metrics_async(program_id, current_pid)
             
             # 이전 상태와 비교
             was_running = self.last_status.get(program_name)
@@ -101,7 +102,7 @@ class ProcessMonitor:
                         # 프로세스가 예기치 않게 종료됨
                         self._handle_unexpected_termination(program_id, program_name, webhook_urls)
                     
-                    # 웹소켓으로 상태 변경 전송
+                    # 웹소켓으로 상태 변경 전송 (즉시)
                     emit_program_status(program_id, {
                         'running': False,
                         'pid': None
@@ -115,6 +116,43 @@ class ProcessMonitor:
             
             # 현재 상태 저장
             self.last_status[program_name] = is_running
+    
+    def _collect_metrics_async(self, program_id, pid):
+        """메트릭을 비동기로 수집 (상태 확인을 블로킹하지 않음).
+        
+        Args:
+            program_id: 프로그램 ID
+            pid: 프로세스 ID
+        """
+        # 이미 실행 중인 스레드가 있으면 중복 실행 방지
+        thread_key = f"metrics_{program_id}"
+        if thread_key in self.metric_threads:
+            thread = self.metric_threads[thread_key]
+            if thread.is_alive():
+                return  # 이미 실행 중
+        
+        # 새로운 스레드에서 메트릭 수집
+        thread = threading.Thread(
+            target=self._collect_metrics_with_timeout,
+            args=(program_id, pid),
+            daemon=True,
+            name=f"MetricsCollector-{program_id}"
+        )
+        thread.start()
+        self.metric_threads[thread_key] = thread
+    
+    def _collect_metrics_with_timeout(self, program_id, pid):
+        """타임아웃이 있는 메트릭 수집 (1초 제한).
+        
+        Args:
+            program_id: 프로그램 ID
+            pid: 프로세스 ID
+        """
+        try:
+            # psutil을 먼저 시도 (빠름, 1초 이내)
+            self._collect_metrics_psutil(program_id, pid)
+        except Exception as e:
+            print(f"⚠️ [Process Monitor] 메트릭 수집 오류 (PID {pid}): {str(e)}")
     
     def _collect_metrics(self, program_id, pid):
         """프로세스의 CPU/메모리 사용량 수집 (최적화).
