@@ -3,6 +3,7 @@
 import requests
 import json
 import threading
+import time
 from datetime import datetime
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
@@ -15,6 +16,10 @@ logger = logging.getLogger(__name__)
 # 웹훅 전송용 스레드 풀 (게임 서버 환경: 최소 워커)
 _webhook_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="Webhook")
 _webhook_lock = threading.Lock()
+
+# Rate Limit 추적 (프로그램별 마지막 전송 시간)
+_last_webhook_time = {}
+_rate_limit_seconds = 60  # 같은 프로그램에 대해 1분에 1번만 전송
 
 # 웹훅 설정 파일 경로
 WEBHOOK_CONFIG_JSON = DATA_DIR / "webhook_config.json"

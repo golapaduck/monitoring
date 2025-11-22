@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 # 글로벌 Rate Limiter 인스턴스
 limiter = Limiter(
     key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"],
+    default_limits=["5000 per day", "1000 per hour"],  # 폴링을 위해 완화
     storage_uri="memory://"  # 메모리 기반 저장소
 )
 

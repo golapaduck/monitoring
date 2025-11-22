@@ -351,6 +351,7 @@ def delete(program_id):
 
 
 @programs_api.route("/status", methods=["GET"])
+@limiter.exempt  # 폴링을 위해 Rate Limit 제외
 def status():
     """모든 프로그램의 실시간 상태 조회 (캐싱 적용 - 2초 TTL)."""
     if "user" not in session:
