@@ -139,6 +139,8 @@ def stop_program(program_path, force=False):
 def _stop_with_psutil(program_path):
     """psutil을 사용한 프로그램 종료 (내부 함수).
     
+    자식 프로세스까지 모두 종료합니다.
+    
     Args:
         program_path: 프로그램 실행 파일 경로
         
@@ -148,17 +150,54 @@ def _stop_with_psutil(program_path):
     try:
         program_name = Path(program_path).name
         killed = False
+        processes_to_kill = []
         
-        for proc in psutil.process_iter(['name', 'exe']):
+        # 1단계: 대상 프로세스 찾기
+        for proc in psutil.process_iter(['name', 'exe', 'pid']):
             try:
                 if proc.info['exe'] and Path(proc.info['exe']).name.lower() == program_name.lower():
-                    proc.terminate()
-                    killed = True
+                    processes_to_kill.append(proc)
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue
         
+        # 2단계: 각 프로세스와 자식 프로세스 종료
+        for proc in processes_to_kill:
+            try:
+                # 자식 프로세스 찾기
+                children = proc.children(recursive=True)
+                
+                # 먼저 자식 프로세스 종료
+                for child in children:
+                    try:
+                        print(f"🔹 [Process Manager] 자식 프로세스 종료: {child.name()} (PID: {child.pid})")
+                        child.terminate()
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        pass
+                
+                # 부모 프로세스 종료
+                print(f"🔸 [Process Manager] 부모 프로세스 종료: {proc.name()} (PID: {proc.pid})")
+                proc.terminate()
+                killed = True
+                
+                # 종료 대기 (최대 3초)
+                try:
+                    proc.wait(timeout=3)
+                except psutil.TimeoutExpired:
+                    # 강제 종료
+                    print(f"⚠️ [Process Manager] 강제 종료: {proc.name()} (PID: {proc.pid})")
+                    proc.kill()
+                    for child in children:
+                        try:
+                            child.kill()
+                        except (psutil.NoSuchProcess, psutil.AccessDenied):
+                            pass
+                
+            except (psutil.NoSuchProcess, psutil.AccessDenied) as e:
+                print(f"⚠️ [Process Manager] 프로세스 종료 중 오류: {str(e)}")
+                continue
+        
         if killed:
-            return True, "프로그램이 종료되었습니다."
+            return True, "프로그램과 모든 자식 프로세스가 종료되었습니다."
         else:
             # 프로그램이 실행 중이 아니면 성공으로 처리
             return True, "프로그램이 이미 종료되었습니다."
