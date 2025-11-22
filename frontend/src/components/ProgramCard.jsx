@@ -1,26 +1,12 @@
 import { useState, memo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Play, Square, ExternalLink, AlertTriangle } from 'lucide-react'
+import { Play, Square, ExternalLink } from 'lucide-react'
 import { startProgram, stopProgram } from '../lib/api'
 
 function ProgramCard({ program, onUpdate, user }) {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
-  const [showForceStop, setShowForceStop] = useState(false)
   const isAdmin = user?.role === 'admin'
-
-  const handleStop = async (force = false) => {
-    setLoading(true)
-    try {
-      await stopProgram(program.id, force)
-      setShowForceStop(false)
-      onUpdate()
-    } catch (error) {
-      alert(`종료 실패: ${error.message}`)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleToggle = async () => {
     setLoading(true)
@@ -30,7 +16,6 @@ function ProgramCard({ program, onUpdate, user }) {
       } else {
         await startProgram(program.id)
       }
-      setShowForceStop(false)
       onUpdate()
     } catch (error) {
       alert(`작업 실패: ${error.message}`)
@@ -109,54 +94,27 @@ function ProgramCard({ program, onUpdate, user }) {
       {/* 액션 버튼 */}
       <div className="flex flex-wrap gap-2">
         {isAdmin && (
-          <>
-            {/* On/Off 토글 버튼 */}
-            <button
-              onClick={handleToggle}
-              disabled={loading}
-              className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
-                program.running
-                  ? 'bg-red-600 hover:bg-red-700 text-white'
-                  : 'bg-green-600 hover:bg-green-700 text-white'
-              }`}
-            >
-              {program.running ? (
-                <>
-                  <Square className="w-4 h-4" />
-                  Off
-                </>
-              ) : (
-                <>
-                  <Play className="w-4 h-4" />
-                  On
-                </>
-              )}
-            </button>
-
-            {/* 강제 종료 버튼 (실행 중일 때만) */}
-            {program.running && (
+          <button
+            onClick={handleToggle}
+            disabled={loading}
+            className={`flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ${
+              program.running
+                ? 'bg-red-600 hover:bg-red-700 text-white'
+                : 'bg-green-600 hover:bg-green-700 text-white'
+            }`}
+          >
+            {program.running ? (
               <>
-                <button
-                  onClick={() => setShowForceStop(!showForceStop)}
-                  disabled={loading}
-                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-                >
-                  <AlertTriangle className="w-4 h-4" />
-                  강제 종료
-                </button>
-                {showForceStop && (
-                  <button
-                    onClick={() => handleStop(true)}
-                    disabled={loading}
-                    className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-red-700 hover:bg-red-800 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-                  >
-                    <AlertTriangle className="w-4 h-4" />
-                    확인
-                  </button>
-                )}
+                <Square className="w-4 h-4" />
+                Off
+              </>
+            ) : (
+              <>
+                <Play className="w-4 h-4" />
+                On
               </>
             )}
-          </>
+          </button>
         )}
       </div>
 

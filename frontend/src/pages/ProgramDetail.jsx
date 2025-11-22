@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Play, Square, Trash2, Edit, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, Play, Square, Trash2, Edit } from 'lucide-react'
 import axios from 'axios'
 import { startProgram, stopProgram, deleteProgram } from '../lib/api'
 import EditProgramModal from '../components/EditProgramModal'
@@ -14,7 +14,6 @@ export default function ProgramDetail() {
   const [program, setProgram] = useState(null)
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState(false)
-  const [showForceStop, setShowForceStop] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [activeTab, setActiveTab] = useState('overview')
 
@@ -45,19 +44,6 @@ export default function ProgramDetail() {
     }
   }
 
-  const handleStop = async (force = false) => {
-    setActionLoading(true)
-    try {
-      await stopProgram(program.id, force)
-      await loadProgram()
-      setShowForceStop(false)
-    } catch (error) {
-      alert(`종료 실패: ${error.message}`)
-    } finally {
-      setActionLoading(false)
-    }
-  }
-
   const handleToggle = async () => {
     setActionLoading(true)
     try {
@@ -67,7 +53,6 @@ export default function ProgramDetail() {
         await startProgram(program.id)
       }
       await loadProgram()
-      setShowForceStop(false)
     } catch (error) {
       alert(`작업 실패: ${error.message}`)
     } finally {
@@ -170,17 +155,6 @@ export default function ProgramDetail() {
               )}
             </button>
 
-            {/* 강제 종료 버튼 (실행 중일 때만) */}
-            {program.running && (
-              <button
-                onClick={() => setShowForceStop(!showForceStop)}
-                disabled={actionLoading}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
-              >
-                <AlertTriangle className="w-4 h-4" />
-                강제 종료
-              </button>
-            )}
             <button
               onClick={() => setShowEditModal(true)}
               disabled={actionLoading}
@@ -198,37 +172,6 @@ export default function ProgramDetail() {
               삭제
             </button>
           </div>
-
-          {/* 강제 종료 옵션 */}
-          {showForceStop && (
-            <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <div className="flex items-start gap-2">
-                <AlertTriangle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm text-yellow-800 font-medium">강제 종료 옵션</p>
-                  <p className="text-xs text-yellow-700 mt-1">
-                    일반 종료가 실패할 경우 강제 종료를 시도하세요.
-                  </p>
-                  <div className="flex gap-2 mt-2">
-                    <button
-                      onClick={() => handleStop(false)}
-                      disabled={actionLoading}
-                      className="px-3 py-1 bg-yellow-600 hover:bg-yellow-700 text-white rounded text-sm font-medium transition-colors disabled:opacity-50"
-                    >
-                      일반 종료
-                    </button>
-                    <button
-                      onClick={() => handleStop(true)}
-                      disabled={actionLoading}
-                      className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm font-medium transition-colors disabled:opacity-50"
-                    >
-                      강제 종료
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* 탭 네비게이션 */}
           <div className="flex gap-4 mt-6 border-b border-gray-200">
