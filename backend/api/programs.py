@@ -169,44 +169,43 @@ def stop(program_id):
         # 의도적 종료 표시 (프로세스 모니터가 crash로 감지하지 않도록)
         mark_intentional_stop(program["name"])
         
-        # 펠월드 플러그인이 있으면 API를 사용하여 종료
+        success = False
+        message = ""
+        shutdown_method = "일반 종료"
+        
+        # 펠월드 플러그인이 있고 강제 종료가 아니면 Graceful Shutdown 시도
         loader = get_plugin_loader()
         palworld_plugin = loader.get_plugin_instance(program_id, "palworld")
         
-        shutdown_time = None  # 종료 대기 시간
-        
         if palworld_plugin and not force:
-            # 펠월드 API를 사용하여 정상 종료
-            shutdown_wait_time = 30  # 기본 30초
-            print(f"🎮 [Programs API] 펠월드 API를 사용하여 서버 종료: {program['name']} (대기 시간: {shutdown_wait_time}초)")
+            # 펠월드 API를 사용하여 Graceful Shutdown
+            shutdown_wait_time = 30
+            print(f"🎮 [Programs API] 펠월드 Graceful Shutdown 시작: {program['name']} (대기: {shutdown_wait_time}초)")
+            
             result = palworld_plugin.execute_action("shutdown_server", {
                 "waittime": str(shutdown_wait_time),
                 "message": "관리자가 서버를 종료합니다"
             })
             
             if result.get("success"):
-                print(f"✅ [Programs API] 펠월드 API 종료 성공: {program['name']}")
                 success = True
                 message = f"펠월드 API를 사용하여 서버를 종료했습니다 (약 {shutdown_wait_time}초 소요)"
-                shutdown_time = shutdown_wait_time
-                # Graceful shutdown: PID는 즉시 제거하지 않음 (Process Monitor가 자연스럽게 감지)
-                print(f"⏳ [Programs API] Graceful shutdown 대기 중: {program['name']} ({shutdown_wait_time}초)")
+                shutdown_method = "Graceful Shutdown"
+                print(f"✅ [Programs API] 펠월드 Graceful Shutdown 성공: {program['name']}")
             else:
                 # API 실패 시 일반 종료로 폴백
-                print(f"⚠️ [Programs API] 펠월드 API 종료 실패, 일반 종료로 폴백: {result.get('message')}")
+                print(f"⚠️ [Programs API] 펠월드 API 실패, 일반 종료로 폴백: {result.get('message')}")
                 success, message = stop_program(program["path"], force=False)
+                shutdown_method = "일반 종료 (폴백)"
         else:
-            # 일반 종료
+            # 일반 종료 또는 강제 종료
             success, message = stop_program(program["path"], force=force)
+            shutdown_method = "강제 종료" if force else "일반 종료"
         
-        # PID 제거 (graceful shutdown이 아닌 경우만)
-        if success and shutdown_time is None:
-            # 일반 종료: 즉시 PID 제거
+        # PID 제거 (모든 경우에 즉시 제거)
+        if success:
             remove_program_pid(program_id)
-            print(f"🗑️ [Programs API] PID 제거: {program['name']}")
-        elif success and shutdown_time is not None:
-            # Graceful shutdown: PID 유지 (Process Monitor가 종료 감지 후 제거)
-            print(f"⏳ [Programs API] PID 유지 (Graceful shutdown 진행 중): {program['name']}")
+            print(f"🗑️ [Programs API] PID 제거: {program['name']} (방법: {shutdown_method})")
         
         # 로그 기록 및 웹훅 알림
         if success:
@@ -223,11 +222,11 @@ def stop(program_id):
             # 즉시 상태 확인 요청 (빠른 감지)
             request_immediate_check()
         
-        response = {"success": success, "message": message}
-        if shutdown_time is not None:
-            response["shutdown_time"] = shutdown_time
-        
-        return jsonify(response)
+        return jsonify({
+            "success": success,
+            "message": message,
+            "shutdown_method": shutdown_method
+        })
     except Exception as e:
         print(f"💥 [Programs API] stop API 예외 발생: {str(e)}")
         import traceback
