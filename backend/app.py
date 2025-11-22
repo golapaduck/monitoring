@@ -36,6 +36,11 @@ Compress(app)
 from utils.rate_limiter import init_limiter
 init_limiter(app)
 
+# Prometheus 메트릭 초기화
+from utils.prometheus_metrics import init_prometheus, prometheus_middleware
+init_prometheus(app)
+prometheus_middleware(app)
+
 # SocketIO 초기화
 from utils.websocket import init_socketio
 socketio = init_socketio(app)

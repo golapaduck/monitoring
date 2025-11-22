@@ -125,12 +125,21 @@ class ProcessMonitor:
                         'running': False,
                         'pid': None
                     })
+                    
+                    # Prometheus 메트릭 기록
+                    from utils.prometheus_metrics import record_process_status_change
+                    record_process_status_change(program_name, 'stopped')
+                    
                 elif not was_running and is_running:
                     # 프로세스가 시작됨
                     emit_program_status(program_id, {
                         'running': True,
                         'pid': current_pid
                     })
+                    
+                    # Prometheus 메트릭 기록
+                    from utils.prometheus_metrics import record_process_status_change
+                    record_process_status_change(program_name, 'running')
             
             # 현재 상태 저장
             self.last_status[program_name] = is_running
