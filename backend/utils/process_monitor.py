@@ -120,6 +120,11 @@ class ProcessMonitor:
                         # 프로세스가 예기치 않게 종료됨
                         self._handle_unexpected_termination(program_id, program_name, webhook_urls)
                     
+                    # 데이터베이스의 PID 초기화 (중요!)
+                    from utils.database import remove_program_pid
+                    remove_program_pid(program_id)
+                    print(f"🗑️ [Process Monitor] 데이터베이스 PID 초기화: {program_name}")
+                    
                     # 웹소켓으로 상태 변경 전송 (즉시)
                     emit_program_status(program_id, {
                         'running': False,

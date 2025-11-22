@@ -174,8 +174,15 @@ def get_programs_status_batch(programs: List[Dict]) -> List[Dict]:
                         proc_name = proc.name().lower()
                         if proc_name == program_name:
                             pid = program['pid']
+                        else:
+                            # 프로세스 이름이 다르면 실행 중이 아님
+                            pid = None
+                    else:
+                        # 프로세스가 실행 중이 아님
+                        pid = None
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
-                    pass
+                    # PID가 유효하지 않음
+                    pid = None
             
             # 리소스 정보 수집 (CPU, 메모리)
             cpu_percent = 0.0
@@ -188,8 +195,12 @@ def get_programs_status_batch(programs: List[Dict]) -> List[Dict]:
                         cpu_percent = proc.cpu_percent(interval=0.1)
                         memory_info = proc.memory_info()
                         memory_mb = memory_info.rss / (1024 * 1024)  # 바이트 → MB
+                    else:
+                        # 프로세스가 실행 중이 아니면 PID 초기화
+                        pid = None
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
-                    pass
+                    # PID가 유효하지 않으면 초기화
+                    pid = None
             
             result.append({
                 **program,
