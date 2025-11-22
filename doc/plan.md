@@ -92,6 +92,7 @@
 - [x] .env 파일에 PRODUCTION 설정 추가
 - [x] run-production.bat 수정 (.env 파일 업데이트)
 - [x] run-dev.bat 추가 (개발 모드 실행)
+- [x] deploy.bat 추가 (빌드 + 배포 통합)
 - [x] 서버 종료 시 .env 파일 복원
 - **완료일:** 2025-11-22
 - **상태:** ✅ 완료
