@@ -23,14 +23,26 @@ function App() {
       
       if (response.ok) {
         const data = await response.json()
-        setIsAuthenticated(true)
-        setUser({
-          username: data.user,
-          role: data.role
-        })
+        
+        // logged_in이 true인 경우에만 인증 처리
+        if (data.logged_in && data.username) {
+          setIsAuthenticated(true)
+          setUser({
+            username: data.username,
+            role: data.role
+          })
+          console.log('✅ 세션 확인 성공:', data.username, data.role)
+        } else {
+          // 세션은 있지만 로그인 정보가 없는 경우
+          setIsAuthenticated(false)
+          setUser(null)
+          console.log('⚠️ 세션 정보 불완전')
+        }
       } else {
+        // 세션 없음
         setIsAuthenticated(false)
         setUser(null)
+        console.log('❌ 세션 없음')
       }
     } catch (error) {
       console.error('세션 확인 실패:', error)

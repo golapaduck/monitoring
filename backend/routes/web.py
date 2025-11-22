@@ -91,11 +91,15 @@ def check_session():
     from flask import jsonify
     
     if "user" not in session:
-        return jsonify({"authenticated": False}), 401
+        return jsonify({
+            "logged_in": False,
+            "authenticated": False
+        }), 401
     
     return jsonify({
+        "logged_in": True,
         "authenticated": True,
-        "user": session.get("user"),
+        "username": session.get("user"),
         "role": session.get("role")
     }), 200
 
