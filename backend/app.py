@@ -14,6 +14,7 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', line_bufferin
 sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', line_buffering=True)
 
 from flask import Flask, send_from_directory
+from flask_compress import Compress
 from config import Config, USERS_JSON, PROGRAMS_JSON, STATUS_JSON
 from utils.data_manager import init_default_data
 from utils.process_monitor import start_process_monitor, stop_process_monitor
@@ -27,6 +28,9 @@ import os
 # Flask 앱 생성 및 설정
 app = Flask(__name__)
 app.config.from_object(Config)
+
+# 응답 압축 활성화 (gzip)
+Compress(app)
 
 # SocketIO 초기화
 from utils.websocket import init_socketio
@@ -49,9 +53,9 @@ from utils.db_pool import init_pool
 init_database()
 migrate_from_json()
 
-# DB 연결 풀 초기화 (5개 연결)
-init_pool(str(DB_PATH), pool_size=5)
-print("[Database] DB 연결 풀 초기화 완료")
+# DB 연결 풀 초기화 (10개 연결 - 동시 요청 처리 향상)
+init_pool(str(DB_PATH), pool_size=10)
+print("[Database] DB 연결 풀 초기화 완료 (10개 연결)")
 
 # 작업 큐 초기화 (3개 워커)
 from utils.job_queue import init_job_queue
