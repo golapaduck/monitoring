@@ -10,20 +10,25 @@ logger = logging.getLogger(__name__)
 
 
 class DatabasePool:
-    """SQLite 연결 풀 관리자."""
+    """SQLite 연결 풀 관리자 (동시성 최적화)."""
     
-    def __init__(self, db_path: str, pool_size: int = 5):
+    def __init__(self, db_path: str, pool_size: int = 20):
         """연결 풀 초기화.
         
         Args:
             db_path: 데이터베이스 파일 경로
-            pool_size: 풀 크기 (기본값: 5)
+            pool_size: 풀 크기 (기본값: 20 - 동시성 개선)
         """
         self.db_path = db_path
         self.pool_size = pool_size
         self.connections = []
         self.available = []
         self.lock = threading.Lock()
+        self.stats = {
+            'total_acquired': 0,
+            'total_released': 0,
+            'max_wait_time': 0
+        }
         self._init_pool()
     
     def _init_pool(self) -> None:

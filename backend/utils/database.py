@@ -120,11 +120,13 @@ def init_database():
         )
     """)
     
-    # 인덱스 생성
+    # 인덱스 생성 (쿼리 성능 최적화)
+    # 1. 프로그램 테이블 인덱스
     cursor.execute("""
         CREATE INDEX IF NOT EXISTS idx_programs_name ON programs(name)
     """)
     
+    # 2. 프로그램 이벤트 인덱스
     cursor.execute("""
         CREATE INDEX IF NOT EXISTS idx_program_events_program_id ON program_events(program_id)
     """)
@@ -133,6 +135,13 @@ def init_database():
         CREATE INDEX IF NOT EXISTS idx_program_events_timestamp ON program_events(timestamp)
     """)
     
+    # 복합 인덱스 (program_id + timestamp로 자주 조회)
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_program_events_program_timestamp 
+        ON program_events(program_id, timestamp DESC)
+    """)
+    
+    # 3. 리소스 사용량 인덱스
     cursor.execute("""
         CREATE INDEX IF NOT EXISTS idx_resource_usage_program_id ON resource_usage(program_id)
     """)
@@ -141,10 +150,31 @@ def init_database():
         CREATE INDEX IF NOT EXISTS idx_resource_usage_timestamp ON resource_usage(timestamp)
     """)
     
+    # 복합 인덱스 (program_id + timestamp로 자주 조회)
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_resource_usage_program_timestamp 
+        ON resource_usage(program_id, timestamp DESC)
+    """)
+    
+    # 4. 웹훅 URL 인덱스
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_webhook_urls_program_id ON webhook_urls(program_id)
+    """)
+    
+    # 5. 플러그인 설정 인덱스
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_plugin_configs_program_id ON plugin_configs(program_id)
+    """)
+    
+    # 6. 사용자 인덱스
+    cursor.execute("""
+        CREATE INDEX IF NOT EXISTS idx_users_username ON users(username)
+    """)
+    
     conn.commit()
     conn.close()
     
-    print("[Database] 데이터베이스 초기화 완료")
+    print("[Database] 데이터베이스 초기화 완료 (인덱스 포함)")
 
 
 def migrate_from_json():
