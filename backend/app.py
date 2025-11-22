@@ -192,8 +192,8 @@ def handle_internal_error(error):
     }), 500
 
 # === 프론트엔드 빌드 파일 서빙 (프로덕션 모드) ===
-# 프론트엔드 빌드 디렉토리 경로
-FRONTEND_DIST = Path(__file__).parent.parent / "frontend" / "dist"
+# 프론트엔드 빌드 디렉토리 경로 (루트의 dist 폴더)
+FRONTEND_DIST = Path(__file__).parent.parent / "dist"
 
 if FRONTEND_DIST.exists() and os.getenv("PRODUCTION", "False").lower() == "true":
     print(f"[Production Mode] 프론트엔드 빌드 파일 서빙: {FRONTEND_DIST}")

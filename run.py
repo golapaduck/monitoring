@@ -101,7 +101,7 @@ def run_prod(auto_build=True):
     print()
     
     # 프론트엔드 빌드 확인 및 자동 빌드
-    dist_dir = FRONTEND_DIR / "dist"
+    dist_dir = PROJECT_ROOT / "dist"
     if auto_build or not dist_dir.exists():
         if not dist_dir.exists():
             print("⚠️ 프론트엔드 빌드 파일이 없습니다.")

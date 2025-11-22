@@ -55,7 +55,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     build: {
-      outDir: '../backend/static/dist',
+      outDir: '../dist',
       emptyOutDir: true,
       // 번들 최적화
       rollupOptions: {
