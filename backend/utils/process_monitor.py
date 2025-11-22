@@ -373,7 +373,9 @@ def start_process_monitor(check_interval=10):
     """
     global _monitor
     if _monitor is None:
-        _monitor = ProcessMonitor(check_interval)
+        _monitor = ProcessMonitor()
+        _monitor.check_interval = check_interval
+        _monitor.base_interval = check_interval
     
     # 이미 실행 중이면 재시작하지 않음
     if not _monitor.running:
