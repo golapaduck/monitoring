@@ -2,9 +2,10 @@
 
 import threading
 import time
+import psutil
 from utils.process_manager import get_process_status
 from utils.webhook import send_webhook_notification
-from utils.database import get_all_programs, log_program_event
+from utils.database import get_all_programs, log_program_event, record_resource_usage
 
 
 class ProcessMonitor:
@@ -66,12 +67,12 @@ class ProcessMonitor:
             webhook_urls = program.get("webhook_urls")
             saved_pid = program.get("pid")
             
-            # 디버그: 웹훅 URL 확인
-            if webhook_urls:
-                print(f"[Debug] {program_name} 웹훅 URL: {webhook_urls}")
-            
             # 현재 실행 상태 확인 (PID 우선)
             is_running, current_pid = get_process_status(program_path, pid=saved_pid)
+            
+            # CPU/메모리 사용량 수집 (실행 중인 경우)
+            if is_running and current_pid:
+                self._collect_metrics(program_id, current_pid)
             
             # 이전 상태와 비교
             was_running = self.last_status.get(program_name)
@@ -90,6 +91,32 @@ class ProcessMonitor:
             
             # 현재 상태 저장
             self.last_status[program_name] = is_running
+    
+    def _collect_metrics(self, program_id, pid):
+        """프로세스의 CPU/메모리 사용량 수집.
+        
+        Args:
+            program_id: 프로그램 ID
+            pid: 프로세스 ID
+        """
+        try:
+            process = psutil.Process(pid)
+            
+            # CPU 사용률 (%)
+            cpu_percent = process.cpu_percent(interval=0.1)
+            
+            # 메모리 사용량 (MB)
+            memory_info = process.memory_info()
+            memory_mb = memory_info.rss / (1024 * 1024)  # bytes to MB
+            
+            # 데이터베이스에 기록
+            record_resource_usage(program_id, cpu_percent, memory_mb)
+            
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            # 프로세스가 종료되었거나 접근 권한이 없는 경우 무시
+            pass
+        except Exception as e:
+            print(f"⚠️ [Process Monitor] 메트릭 수집 오류 (PID {pid}): {str(e)}")
     
     def _handle_unexpected_termination(self, program_id, program_name, webhook_urls):
         """예기치 않은 프로세스 종료 처리.

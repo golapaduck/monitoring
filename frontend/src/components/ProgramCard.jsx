@@ -1,12 +1,14 @@
 import { useState } from 'react'
-import { Play, Square, RotateCw, Trash2, Settings, AlertTriangle, Edit } from 'lucide-react'
+import { Play, Square, RotateCw, Trash2, Settings, AlertTriangle, Edit, BarChart3 } from 'lucide-react'
 import { startProgram, stopProgram, restartProgram, deleteProgram } from '../lib/api'
 import EditProgramModal from './EditProgramModal'
+import ResourceChart from './ResourceChart'
 
 export default function ProgramCard({ program, onUpdate }) {
   const [loading, setLoading] = useState(false)
   const [showForceStop, setShowForceStop] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [showChart, setShowChart] = useState(false)
 
   const handleStart = async () => {
     setLoading(true)
@@ -163,6 +165,18 @@ export default function ProgramCard({ program, onUpdate }) {
         </button>
 
         <button
+          onClick={() => setShowChart(!showChart)}
+          className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            showChart
+              ? 'bg-blue-100 text-blue-700 border border-blue-300'
+              : 'border border-gray-300 hover:bg-gray-50 text-gray-700'
+          }`}
+          title="리소스 차트"
+        >
+          <BarChart3 className="w-4 h-4" />
+        </button>
+
+        <button
           onClick={() => setShowEditModal(true)}
           disabled={loading}
           className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
@@ -178,6 +192,13 @@ export default function ProgramCard({ program, onUpdate }) {
           <Trash2 className="w-4 h-4" />
         </button>
       </div>
+
+      {/* 리소스 차트 */}
+      {showChart && (
+        <div className="mt-4">
+          <ResourceChart programId={program.id} />
+        </div>
+      )}
 
       {/* 로딩 오버레이 */}
       {loading && (
