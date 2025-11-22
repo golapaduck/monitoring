@@ -94,6 +94,86 @@ def _find_by_name(program_name):
         return False, None
 
 
+def get_programs_status_batch(programs):
+    """여러 프로그램의 상태를 한 번에 조회 (배치 처리).
+    
+    psutil.process_iter()를 한 번만 호출하여 성능을 크게 향상시킵니다.
+    
+    Args:
+        programs: 프로그램 목록 (dict 리스트)
+        
+    Returns:
+        list: 상태가 추가된 프로그램 목록
+    
+    Example:
+        programs = [
+            {"id": 1, "name": "notepad", "path": "C:\\Windows\\notepad.exe"},
+            {"id": 2, "name": "calc", "path": "C:\\Windows\\calc.exe"}
+        ]
+        result = get_programs_status_batch(programs)
+        # [
+        #     {"id": 1, ..., "running": True, "pid": 1234},
+        #     {"id": 2, ..., "running": False, "pid": None}
+        # ]
+    """
+    # 1단계: 모든 실행 중인 프로세스 정보를 한 번에 수집
+    running_processes = {}
+    try:
+        for proc in psutil.process_iter(['name', 'exe', 'pid']):
+            try:
+                if proc.info['name']:
+                    name = proc.info['name'].lower()
+                    running_processes[name] = proc.info['pid']
+                
+                # 전체 경로도 저장 (더 정확한 매칭)
+                if proc.info['exe']:
+                    exe_name = Path(proc.info['exe']).name.lower()
+                    if exe_name not in running_processes:
+                        running_processes[exe_name] = proc.info['pid']
+                        
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                continue
+    except Exception as e:
+        print(f"⚠️ [Process Manager] 프로세스 목록 조회 오류: {str(e)}")
+    
+    # 2단계: 각 프로그램의 상태 확인
+    result = []
+    for program in programs:
+        try:
+            program_name = Path(program['path']).name.lower()
+            
+            # 실행 중인 프로세스에서 찾기
+            pid = running_processes.get(program_name)
+            
+            # PID 더블 체크 (저장된 PID가 있는 경우)
+            if program.get('pid') and not pid:
+                # 저장된 PID로 확인
+                try:
+                    proc = psutil.Process(program['pid'])
+                    if proc.is_running():
+                        proc_name = proc.name().lower()
+                        if proc_name == program_name:
+                            pid = program['pid']
+                except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    pass
+            
+            result.append({
+                **program,
+                'running': pid is not None,
+                'pid': pid
+            })
+            
+        except Exception as e:
+            print(f"⚠️ [Process Manager] 프로그램 상태 확인 오류 ({program.get('name', 'Unknown')}): {str(e)}")
+            result.append({
+                **program,
+                'running': False,
+                'pid': None
+            })
+    
+    return result
+
+
 def start_program(program_path, args=""):
     """프로그램 실행.
     
