@@ -2,6 +2,8 @@
  * API 유틸리티 함수들
  */
 
+import { cachedFetch } from '../utils/cache'
+
 const API_BASE = ''
 
 /**
@@ -30,10 +32,10 @@ async function apiRequest(url, options = {}) {
 }
 
 /**
- * 프로그램 목록 조회
+ * 프로그램 목록 조회 (캐싱 적용)
  */
 export async function getPrograms() {
-  return apiRequest('/api/programs')
+  return cachedFetch('programs', () => apiRequest('/api/programs'), 10)
 }
 
 /**

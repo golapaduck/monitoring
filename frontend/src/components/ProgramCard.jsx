@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useState, memo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Play, Square, ExternalLink, AlertTriangle } from 'lucide-react'
 import { startProgram, stopProgram } from '../lib/api'
 
-export default function ProgramCard({ program, onUpdate, user }) {
+function ProgramCard({ program, onUpdate, user }) {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [showForceStop, setShowForceStop] = useState(false)
@@ -169,3 +169,15 @@ export default function ProgramCard({ program, onUpdate, user }) {
     </div>
   )
 }
+
+// 메모이제이션 적용 (props 변경 시에만 리렌더링)
+export default memo(ProgramCard, (prevProps, nextProps) => {
+  // program과 user가 같으면 리렌더링 스킵
+  return (
+    prevProps.program.id === nextProps.program.id &&
+    prevProps.program.running === nextProps.program.running &&
+    prevProps.program.cpu_percent === nextProps.program.cpu_percent &&
+    prevProps.program.memory_mb === nextProps.program.memory_mb &&
+    prevProps.user?.role === nextProps.user?.role
+  )
+})

@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { LogOut, Plus, RefreshCw, Wifi, WifiOff } from 'lucide-react'
 import { getProgramsStatus } from '../lib/api'
 import ProgramCard from '../components/ProgramCard'
 import AddProgramModal from '../components/AddProgramModal'
 import LoadingSkeleton from '../components/LoadingSkeleton'
 import { useProgramStatus, useNotification } from '../hooks/useWebSocket'
+import { throttle } from '../utils/debounce'
 
 export default function DashboardPage({ user, onLogout }) {
   const [programs, setPrograms] = useState([])
@@ -13,8 +14,8 @@ export default function DashboardPage({ user, onLogout }) {
   const [refreshing, setRefreshing] = useState(false)
   const isAdmin = user?.role === 'admin'
 
-  // 프로그램 상태 조회
-  const fetchPrograms = async () => {
+  // 프로그램 상태 조회 (쓰로틀 적용)
+  const fetchPrograms = useCallback(async () => {
     try {
       const data = await getProgramsStatus()
       setPrograms(data.programs_status || [])
@@ -24,7 +25,13 @@ export default function DashboardPage({ user, onLogout }) {
       setLoading(false)
       setRefreshing(false)
     }
-  }
+  }, [])
+
+  // 쓰로틀된 fetchPrograms
+  const throttledFetchPrograms = useMemo(
+    () => throttle(fetchPrograms, 1000),
+    [fetchPrograms]
+  )
 
   // 웹소켓 프로그램 상태 업데이트 핸들러
   const handleProgramStatusChange = useCallback((data) => {
