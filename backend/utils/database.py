@@ -247,23 +247,35 @@ def update_user_password(username, password):
 # === 프로그램 관련 함수 ===
 
 def get_all_programs():
-    """모든 프로그램 조회 (웹훅 URL 포함)."""
+    """모든 프로그램 조회 (웹훅 URL 포함 - 최적화)."""
     conn = get_connection()
     cursor = conn.cursor()
     
+    # 1단계: 모든 프로그램 조회
     cursor.execute("SELECT * FROM programs ORDER BY id")
-    programs = []
+    programs = [dict(row) for row in cursor.fetchall()]
     
+    if not programs:
+        conn.close()
+        return programs
+    
+    # 2단계: 모든 웹훅 URL을 한 번에 조회 (N+1 쿼리 제거)
+    program_ids = [p['id'] for p in programs]
+    placeholders = ','.join('?' * len(program_ids))
+    cursor.execute(f"SELECT program_id, url FROM webhook_urls WHERE program_id IN ({placeholders})", program_ids)
+    
+    # 3단계: 웹훅 URL을 프로그램별로 그룹화
+    webhooks_by_program = {}
     for row in cursor.fetchall():
-        program = dict(row)
-        program_id = program['id']
-        
-        # 웹훅 URL 조회
-        cursor.execute("SELECT url FROM webhook_urls WHERE program_id = ?", (program_id,))
-        webhook_urls = [r['url'] for r in cursor.fetchall()]
-        program['webhook_urls'] = webhook_urls
-        
-        programs.append(program)
+        program_id = row['program_id']
+        url = row['url']
+        if program_id not in webhooks_by_program:
+            webhooks_by_program[program_id] = []
+        webhooks_by_program[program_id].append(url)
+    
+    # 4단계: 프로그램에 웹훅 URL 추가
+    for program in programs:
+        program['webhook_urls'] = webhooks_by_program.get(program['id'], [])
     
     conn.close()
     return programs

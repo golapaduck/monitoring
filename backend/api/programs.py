@@ -44,17 +44,17 @@ from utils.path_validator import validate_program_path, normalize_path, get_path
 def programs():
     """프로그램 목록 조회 및 등록 API."""
     if request.method == "GET":
-        # 캐시 확인
+        # 캐시 확인 (10초 TTL)
         cache = get_cache()
         cached_programs = cache.get("all_programs")
         if cached_programs is not None:
             logger.debug("프로그램 목록 캐시 히트")
             return jsonify({"programs": cached_programs})
         
-        # SQLite에서 프로그램 목록 조회
+        # SQLite에서 프로그램 목록 조회 (최적화된 쿼리)
         programs_list = get_all_programs()
         
-        # 캐시에 저장 (5초)
+        # 캐시에 저장 (10초)
         cache.set("all_programs", programs_list)
         logger.debug(f"프로그램 목록 캐시 저장: {len(programs_list)}개")
         

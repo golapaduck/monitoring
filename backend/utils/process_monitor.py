@@ -58,20 +58,22 @@ class ProcessMonitor:
             time.sleep(self.check_interval)
     
     def _check_processes(self):
-        """등록된 모든 프로세스 상태 확인."""
+        """등록된 모든 프로세스 상태 확인 (배치 처리 최적화)."""
         programs = get_all_programs()
         
-        for program in programs:
+        # 1단계: 배치로 모든 프로그램 상태 조회 (한 번의 PowerShell 호출)
+        from utils.process_manager import get_programs_status_batch
+        programs_with_status = get_programs_status_batch(programs)
+        
+        # 2단계: 상태 변화 감지 및 메트릭 수집
+        for program in programs_with_status:
             program_id = program["id"]
             program_name = program["name"]
-            program_path = program["path"]
             webhook_urls = program.get("webhook_urls")
-            saved_pid = program.get("pid")
+            is_running = program.get("running", False)
+            current_pid = program.get("pid")
             
-            # 현재 실행 상태 확인 (PID 우선)
-            is_running, current_pid = get_process_status(program_path, pid=saved_pid)
-            
-            # CPU/메모리 사용량 수집 (실행 중인 경우)
+            # CPU/메모리 사용량 수집 (실행 중인 경우만)
             if is_running and current_pid:
                 self._collect_metrics(program_id, current_pid)
             
@@ -106,7 +108,70 @@ class ProcessMonitor:
             self.last_status[program_name] = is_running
     
     def _collect_metrics(self, program_id, pid):
-        """프로세스의 CPU/메모리 사용량 수집.
+        """프로세스의 CPU/메모리 사용량 수집 (최적화).
+        
+        Args:
+            program_id: 프로그램 ID
+            pid: 프로세스 ID
+        """
+        try:
+            # PowerShell 에이전트 사용 (배치 처리 가능)
+            try:
+                from utils.powershell_agent import get_powershell_agent
+                agent = get_powershell_agent()
+                
+                # PowerShell 스크립트: 프로세스 메트릭 조회
+                script = f"""
+                $proc = Get-Process -Id {pid} -ErrorAction SilentlyContinue
+                if ($proc) {{
+                    @{{
+                        CPU = [math]::Round($proc.CPU, 2)
+                        Memory = [math]::Round($proc.WorkingSet / 1MB, 2)
+                    }} | ConvertTo-Json
+                }}
+                """
+                
+                command_id = agent.execute(script, timeout=5)
+                command = agent.get_command(command_id)
+                
+                # 명령 완료 대기 (최대 5초)
+                import time
+                for _ in range(50):
+                    if command.completed_at:
+                        break
+                    time.sleep(0.1)
+                
+                if command.result and command.output:
+                    import json
+                    try:
+                        metrics = json.loads(command.output)
+                        cpu_percent = metrics.get('CPU', 0)
+                        memory_mb = metrics.get('Memory', 0)
+                        
+                        # 데이터베이스에 기록
+                        record_resource_usage(program_id, cpu_percent, memory_mb)
+                        
+                        # 웹소켓으로 리소스 업데이트 전송
+                        emit_resource_update(program_id, {
+                            'cpu_percent': round(cpu_percent, 2),
+                            'memory_mb': round(memory_mb, 2)
+                        })
+                    except json.JSONDecodeError:
+                        # PowerShell 파싱 실패 시 psutil 폴백
+                        self._collect_metrics_psutil(program_id, pid)
+                else:
+                    # PowerShell 실패 시 psutil 폴백
+                    self._collect_metrics_psutil(program_id, pid)
+            
+            except RuntimeError:
+                # 에이전트 미초기화 시 psutil 사용
+                self._collect_metrics_psutil(program_id, pid)
+        
+        except Exception as e:
+            print(f"⚠️ [Process Monitor] 메트릭 수집 오류 (PID {pid}): {str(e)}")
+    
+    def _collect_metrics_psutil(self, program_id, pid):
+        """psutil을 사용한 메트릭 수집 (폴백).
         
         Args:
             program_id: 프로그램 ID
@@ -115,8 +180,8 @@ class ProcessMonitor:
         try:
             process = psutil.Process(pid)
             
-            # CPU 사용률 (%)
-            cpu_percent = process.cpu_percent(interval=0.1)
+            # CPU 사용률 (%) - interval=0으로 즉시 반환
+            cpu_percent = process.cpu_percent(interval=0)
             
             # 메모리 사용량 (MB)
             memory_info = process.memory_info()
@@ -130,12 +195,12 @@ class ProcessMonitor:
                 'cpu_percent': round(cpu_percent, 2),
                 'memory_mb': round(memory_mb, 2)
             })
-            
+        
         except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
             # 프로세스가 종료되었거나 접근 권한이 없는 경우 무시
             pass
         except Exception as e:
-            print(f"⚠️ [Process Monitor] 메트릭 수집 오류 (PID {pid}): {str(e)}")
+            print(f"⚠️ [Process Monitor] psutil 메트릭 수집 오류 (PID {pid}): {str(e)}")
     
     def _handle_unexpected_termination(self, program_id, program_name, webhook_urls):
         """예기치 않은 프로세스 종료 처리.
