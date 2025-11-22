@@ -265,15 +265,29 @@ function PluginConfigModal({ programId, plugin, onClose, onSuccess }) {
     setLoading(true)
     setError('')
 
+    console.log('플러그인 설정 저장:', {
+      plugin,
+      config,
+      enabled,
+      isUpdate: !!plugin.id
+    })
+
     try {
       if (plugin.id) {
         // 업데이트
+        console.log('업데이트 요청:', `/api/plugins/config/${plugin.id}`)
         await axios.put(`/api/plugins/config/${plugin.id}`, {
           config,
           enabled
         })
       } else {
         // 생성
+        console.log('생성 요청:', {
+          program_id: programId,
+          plugin_id: plugin.plugin_id,
+          config,
+          enabled
+        })
         await axios.post('/api/plugins/config', {
           program_id: programId,
           plugin_id: plugin.plugin_id,
@@ -283,6 +297,7 @@ function PluginConfigModal({ programId, plugin, onClose, onSuccess }) {
       }
       onSuccess()
     } catch (err) {
+      console.error('플러그인 설정 저장 실패:', err)
       setError(err.response?.data?.error || '플러그인 설정 저장 실패')
     } finally {
       setLoading(false)
