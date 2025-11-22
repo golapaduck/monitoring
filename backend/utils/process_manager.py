@@ -176,7 +176,7 @@ def get_programs_status_batch(programs: List[Dict]) -> List[Dict]:
 
 
 def start_program(program_path: str, args: str = "") -> Tuple[bool, str, Optional[int]]:
-    """프로그램 실행.
+    """프로그램 실행 (PowerShell 에이전트 사용).
     
     Args:
         program_path: 프로그램 실행 파일 경로
@@ -186,26 +186,50 @@ def start_program(program_path: str, args: str = "") -> Tuple[bool, str, Optiona
         tuple: (성공 여부, 메시지, PID 또는 None)
     """
     try:
-        cmd = f'"{program_path}"'
-        if args:
-            cmd += f" {args}"
+        # PowerShell 에이전트 사용
+        try:
+            from utils.powershell_agent import get_powershell_agent
+            agent = get_powershell_agent()
+            
+            # PowerShell 스크립트 생성
+            cmd = f'"{program_path}"'
+            if args:
+                cmd += f' {args}'
+            
+            script = f'Start-Process -FilePath {cmd} -WindowStyle Hidden'
+            agent.execute(script, timeout=10)
+            
+            # 프로세스 시작 후 PID 찾기
+            import time
+            time.sleep(0.5)
+            
+            is_running, pid = get_process_status(program_path)
+            if is_running and pid:
+                return True, "프로그램이 실행되었습니다.", pid
+            else:
+                return True, "프로그램이 실행되었습니다. (PID 확인 불가)", None
         
-        # PowerShell을 통해 백그라운드로 실행
-        subprocess.Popen(
-            ["powershell", "-Command", f"Start-Process -FilePath {cmd}"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
-        )
-        
-        # 프로세스 시작 후 PID 찾기 (약간의 지연 후)
-        import time
-        time.sleep(0.5)  # 프로세스 시작 대기
-        
-        is_running, pid = get_process_status(program_path)
-        if is_running and pid:
-            return True, "프로그램이 실행되었습니다.", pid
-        else:
-            return True, "프로그램이 실행되었습니다. (PID 확인 불가)", None
+        except RuntimeError:
+            # 에이전트 미초기화 시 직접 실행
+            cmd = f'"{program_path}"'
+            if args:
+                cmd += f" {args}"
+            
+            subprocess.Popen(
+                ["powershell", "-Command", f"Start-Process -FilePath {cmd}"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE
+            )
+            
+            import time
+            time.sleep(0.5)
+            
+            is_running, pid = get_process_status(program_path)
+            if is_running and pid:
+                return True, "프로그램이 실행되었습니다.", pid
+            else:
+                return True, "프로그램이 실행되었습니다. (PID 확인 불가)", None
+    
     except Exception as e:
         return False, f"실행 실패: {str(e)}", None
 
