@@ -27,13 +27,15 @@ export default function ProgramDetail() {
   const loadProgram = async () => {
     try {
       const response = await axios.get(`/api/programs`)
-      const programs = response.data
+      // API 응답이 {programs: [...]} 형태
+      const programs = response.data.programs || response.data
       const foundProgram = programs.find(p => p.id === parseInt(id))
       
       if (foundProgram) {
         setProgram(foundProgram)
       } else {
-        navigate('/dashboard')
+        console.warn(`프로그램을 찾을 수 없습니다 (ID: ${id})`)
+        setTimeout(() => navigate('/dashboard'), 2000)
       }
     } catch (error) {
       console.error('프로그램 로드 실패:', error)
@@ -104,7 +106,16 @@ export default function ProgramDetail() {
   if (!program) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-500">프로그램을 찾을 수 없습니다.</div>
+        <div className="text-center">
+          <div className="text-xl font-semibold text-gray-900 mb-2">프로그램을 찾을 수 없습니다</div>
+          <div className="text-gray-500 mb-4">ID: {id}</div>
+          <button
+            onClick={() => navigate('/dashboard')}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            대시보드로 돌아가기
+          </button>
+        </div>
       </div>
     )
   }
