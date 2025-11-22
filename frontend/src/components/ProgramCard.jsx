@@ -1,11 +1,13 @@
 import { useState } from 'react'
-import { Play, Square, RotateCw, Trash2, Settings, AlertTriangle, Edit, BarChart3, Puzzle } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Play, Square, RotateCw, Trash2, Settings, AlertTriangle, Edit, BarChart3, Puzzle, ExternalLink } from 'lucide-react'
 import { startProgram, stopProgram, restartProgram, deleteProgram } from '../lib/api'
 import EditProgramModal from './EditProgramModal'
 import ResourceChart from './ResourceChart'
 import PluginModal from './PluginModal'
 
 export default function ProgramCard({ program, onUpdate }) {
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [showForceStop, setShowForceStop] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
@@ -70,9 +72,18 @@ export default function ProgramCard({ program, onUpdate }) {
       {/* 헤더 */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
-          <h3 className="text-lg font-semibold text-gray-900 mb-1">
-            {program.name}
-          </h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">
+              {program.name}
+            </h3>
+            <button
+              onClick={() => navigate(`/program/${program.id}`)}
+              className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+              title="상세 페이지"
+            >
+              <ExternalLink className="w-4 h-4" />
+            </button>
+          </div>
           <p className="text-sm text-gray-500 truncate" title={program.path}>
             {program.path || 'N/A'}
           </p>

@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
+import ProgramDetail from './pages/ProgramDetail'
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
@@ -79,6 +80,14 @@ function App() {
           element={
             isAuthenticated ? 
             <DashboardPage user={user} onLogout={handleLogout} /> : 
+            <Navigate to="/login" replace />
+          } 
+        />
+        <Route 
+          path="/program/:id" 
+          element={
+            isAuthenticated ? 
+            <ProgramDetail user={user} onLogout={handleLogout} /> : 
             <Navigate to="/login" replace />
           } 
         />
