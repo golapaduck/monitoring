@@ -192,10 +192,12 @@ class PalworldPlugin(PluginBase):
             if not userid:
                 return {"success": False, "message": "사용자 ID가 필요합니다"}
             
-            body = {"userid": userid}
+            # Palworld REST API는 playerId 필드 사용
+            body = {"playerId": userid}
             if params.get("message"):
                 body["message"] = params.get("message")
             
+            print(f"[Palworld Plugin] kick_player body: {body}")
             return self._api_request("POST", "/kick", json=body)
         
         elif action_name == "ban_player":
@@ -203,10 +205,12 @@ class PalworldPlugin(PluginBase):
             if not userid:
                 return {"success": False, "message": "사용자 ID가 필요합니다"}
             
-            body = {"userid": userid}
+            # Palworld REST API는 playerId 필드 사용
+            body = {"playerId": userid}
             if params.get("message"):
                 body["message"] = params.get("message")
             
+            print(f"[Palworld Plugin] ban_player body: {body}")
             return self._api_request("POST", "/ban", json=body)
         
         elif action_name == "unban_player":
@@ -214,7 +218,10 @@ class PalworldPlugin(PluginBase):
             if not userid:
                 return {"success": False, "message": "사용자 ID가 필요합니다"}
             
-            return self._api_request("POST", "/unban", json={"userid": userid})
+            # Palworld REST API는 playerId 필드 사용
+            body = {"playerId": userid}
+            print(f"[Palworld Plugin] unban_player body: {body}")
+            return self._api_request("POST", "/unban", json=body)
         
         elif action_name == "save_world":
             return self._api_request("POST", "/save")
