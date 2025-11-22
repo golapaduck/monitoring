@@ -48,7 +48,11 @@ function ProgramCard({ program, onUpdate, user }) {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+    <div className={`bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow ${
+      hasPalworldPlugin 
+        ? 'border-2 border-purple-200 hover:border-purple-300' 
+        : 'border border-gray-200'
+    }`}>
       {/* 헤더 */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
@@ -56,6 +60,13 @@ function ProgramCard({ program, onUpdate, user }) {
             <h3 className="text-lg font-semibold text-gray-900 mb-1">
               {program.name}
             </h3>
+            {/* 펠월드 배지 */}
+            {hasPalworldPlugin && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                <Zap className="w-3 h-3 mr-1" />
+                Palworld
+              </span>
+            )}
             <button
               onClick={() => navigate(`/program/${program.id}`)}
               className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
