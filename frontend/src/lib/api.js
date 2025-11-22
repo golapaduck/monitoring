@@ -8,27 +8,44 @@ const API_BASE = ''
 
 /**
  * API 요청 헬퍼 함수
+ * 
+ * 타임아웃: 30초 (기본값)
  */
 async function apiRequest(url, options = {}) {
+  const timeout = options.timeout || 30000  // 30초 기본 타임아웃
+  
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), timeout)
+
   const defaultOptions = {
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       ...options.headers,
     },
+    signal: controller.signal,
   }
 
-  const response = await fetch(`${API_BASE}${url}`, {
-    ...defaultOptions,
-    ...options,
-  })
+  try {
+    const response = await fetch(`${API_BASE}${url}`, {
+      ...defaultOptions,
+      ...options,
+    })
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Unknown error' }))
-    throw new Error(error.error || `HTTP ${response.status}`)
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Unknown error' }))
+      throw new Error(error.error || `HTTP ${response.status}`)
+    }
+
+    return response.json()
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      throw new Error(`요청 타임아웃 (${timeout}ms)`)
+    }
+    throw error
+  } finally {
+    clearTimeout(timeoutId)
   }
-
-  return response.json()
 }
 
 /**

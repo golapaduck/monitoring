@@ -50,19 +50,26 @@ export default function DashboardPage({ user, onLogout }) {
   const { isConnected } = useProgramStatus(handleProgramStatusChange)
   useNotification(handleNotification)
 
-  // 초기 로드
+  // 초기 로드 (한 번만)
   useEffect(() => {
     fetchPrograms()
   }, [fetchPrograms])
 
-  // 웹소켓이 연결되지 않은 경우에만 폴링
+  // 웹소켓이 연결되지 않은 경우에만 폴링 (5초 간격)
+  // 웹소켓 연결 시 폴링 중지 (실시간 업데이트 사용)
   useEffect(() => {
     if (!isConnected) {
+      console.log('📡 [Dashboard] 웹소켓 미연결 - 폴링 시작')
       const interval = setInterval(() => {
         fetchPrograms()
       }, 5000)
 
-      return () => clearInterval(interval)
+      return () => {
+        clearInterval(interval)
+        console.log('📡 [Dashboard] 폴링 중지')
+      }
+    } else {
+      console.log('🔌 [Dashboard] 웹소켓 연결됨 - 폴링 중지, 실시간 업데이트 사용')
     }
   }, [isConnected, fetchPrograms])
 

@@ -29,14 +29,28 @@ export default defineConfig(({ mode }) => {
         '/api': {
           target: backendUrl,
           changeOrigin: true,
+          timeout: 30000,  // 30초 타임아웃
+          proxyTimeout: 30000,
+          ws: true,  // WebSocket 지원
         },
         '/login': {
           target: backendUrl,
           changeOrigin: true,
+          timeout: 10000,
+          proxyTimeout: 10000,
         },
         '/logout': {
           target: backendUrl,
           changeOrigin: true,
+          timeout: 10000,
+          proxyTimeout: 10000,
+        },
+        '/socket.io': {
+          target: backendUrl,
+          changeOrigin: true,
+          ws: true,
+          timeout: 60000,
+          proxyTimeout: 60000,
         },
       },
     },
