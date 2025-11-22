@@ -42,11 +42,12 @@ export default function PluginTab({ programId }) {
     }
   }
 
-  const handleDeletePlugin = async (pluginId) => {
+  const handleDeletePlugin = async (plugin) => {
     if (!confirm('이 플러그인 설정을 삭제하시겠습니까?')) return
 
     try {
-      await axios.delete(`/api/plugins/config/${pluginId}`)
+      // 백엔드 API: DELETE /api/plugins/program/<program_id>/<plugin_id>
+      await axios.delete(`/api/plugins/program/${programId}/${plugin.plugin_id}`)
       await loadPlugins()
     } catch (error) {
       alert(`삭제 실패: ${error.response?.data?.error || error.message}`)
@@ -130,7 +131,7 @@ export default function PluginTab({ programId }) {
                       <Settings className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => handleDeletePlugin(plugin.id)}
+                      onClick={() => handleDeletePlugin(plugin)}
                       className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                       title="삭제"
                     >
@@ -210,6 +211,7 @@ export default function PluginTab({ programId }) {
       {/* 플러그인 액션 모달 */}
       {showActionModal && selectedPlugin && (
         <PluginActionModal
+          programId={programId}
           plugin={selectedPlugin}
           onClose={() => {
             setShowActionModal(false)
@@ -273,28 +275,15 @@ function PluginConfigModal({ programId, plugin, onClose, onSuccess }) {
     })
 
     try {
-      if (plugin.id) {
-        // 업데이트
-        console.log('업데이트 요청:', `/api/plugins/config/${plugin.id}`)
-        await axios.put(`/api/plugins/config/${plugin.id}`, {
-          config,
-          enabled
-        })
-      } else {
-        // 생성
-        console.log('생성 요청:', {
-          program_id: programId,
-          plugin_id: plugin.plugin_id,
-          config,
-          enabled
-        })
-        await axios.post('/api/plugins/config', {
-          program_id: programId,
-          plugin_id: plugin.plugin_id,
-          config,
-          enabled
-        })
-      }
+      // 백엔드 API: POST /api/plugins/program/<program_id>/<plugin_id>
+      const url = `/api/plugins/program/${programId}/${plugin.plugin_id}`
+      console.log('플러그인 설정 저장 요청:', url, { config, enabled })
+      
+      await axios.post(url, {
+        config,
+        enabled
+      })
+      
       onSuccess()
     } catch (err) {
       console.error('플러그인 설정 저장 실패:', err)
@@ -448,7 +437,7 @@ function PluginConfigModal({ programId, plugin, onClose, onSuccess }) {
 }
 
 // 플러그인 액션 모달
-function PluginActionModal({ plugin, onClose }) {
+function PluginActionModal({ programId, plugin, onClose }) {
   const [actions, setActions] = useState({})
   const [selectedAction, setSelectedAction] = useState(null)
   const [params, setParams] = useState({})
@@ -489,7 +478,8 @@ function PluginActionModal({ plugin, onClose }) {
     setResult(null)
 
     try {
-      const response = await axios.post(`/api/plugins/config/${plugin.id}/execute`, {
+      // 백엔드 API: POST /api/plugins/program/<program_id>/<plugin_id>/action
+      const response = await axios.post(`/api/plugins/program/${programId}/${plugin.plugin_id}/action`, {
         action: selectedAction,
         params
       })
