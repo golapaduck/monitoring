@@ -192,8 +192,8 @@ class PalworldPlugin(PluginBase):
             if not userid:
                 return {"success": False, "message": "사용자 ID가 필요합니다"}
             
-            # Palworld REST API는 playerId 필드 사용
-            body = {"playerId": userid}
+            # Palworld REST API는 userid 필드 사용 (Steam ID: steam_xxx)
+            body = {"userid": userid}
             if params.get("message"):
                 body["message"] = params.get("message")
             
@@ -205,8 +205,8 @@ class PalworldPlugin(PluginBase):
             if not userid:
                 return {"success": False, "message": "사용자 ID가 필요합니다"}
             
-            # Palworld REST API는 playerId 필드 사용
-            body = {"playerId": userid}
+            # Palworld REST API는 userid 필드 사용 (Steam ID: steam_xxx)
+            body = {"userid": userid}
             if params.get("message"):
                 body["message"] = params.get("message")
             
@@ -218,8 +218,8 @@ class PalworldPlugin(PluginBase):
             if not userid:
                 return {"success": False, "message": "사용자 ID가 필요합니다"}
             
-            # Palworld REST API는 playerId 필드 사용
-            body = {"playerId": userid}
+            # Palworld REST API는 userid 필드 사용 (Steam ID: steam_xxx)
+            body = {"userid": userid}
             print(f"[Palworld Plugin] unban_player body: {body}")
             return self._api_request("POST", "/unban", json=body)
         

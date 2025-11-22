@@ -96,15 +96,15 @@ export default function PalworldControl({ programId }) {
     executeAction('announce', { message })
   }
 
-  const handleKickPlayer = (playerId, playerName) => {
+  const handleKickPlayer = (userId, playerName) => {
     if (confirm(`${playerName}을(를) 강퇴하시겠습니까?`)) {
-      executeAction('kick_player', { userid: playerId, message: '관리자에 의해 강퇴되었습니다' })
+      executeAction('kick_player', { userid: userId, message: '관리자에 의해 강퇴되었습니다' })
     }
   }
 
-  const handleBanPlayer = (playerId, playerName) => {
+  const handleBanPlayer = (userId, playerName) => {
     if (confirm(`${playerName}을(를) 차단하시겠습니까?`)) {
-      executeAction('ban_player', { userid: playerId, message: '관리자에 의해 차단되었습니다' })
+      executeAction('ban_player', { userid: userId, message: '관리자에 의해 차단되었습니다' })
     }
   }
 
@@ -203,14 +203,14 @@ export default function PalworldControl({ programId }) {
                 </div>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => handleKickPlayer(player.playerId || player.playerid, player.name)}
+                    onClick={() => handleKickPlayer(player.userId || player.userid, player.name)}
                     disabled={actionLoading}
                     className="px-3 py-1 text-sm bg-orange-600 text-white rounded hover:bg-orange-700 disabled:opacity-50"
                   >
                     강퇴
                   </button>
                   <button
-                    onClick={() => handleBanPlayer(player.playerId || player.playerid, player.name)}
+                    onClick={() => handleBanPlayer(player.userId || player.userid, player.name)}
                     disabled={actionLoading}
                     className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
                   >
