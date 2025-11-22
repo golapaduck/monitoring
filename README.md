@@ -37,10 +37,16 @@ copy .env.example .env
 ```
 
 주요 설정:
+
+**백엔드 (Flask):**
 - `FLASK_HOST`: Flask 서버 호스트 (기본: 0.0.0.0)
-- `FLASK_PORT`: Flask 서버 포트 (기본: 5000)
+- `FLASK_PORT`: Flask 서버 포트 (기본: 8080)
 - `FLASK_DEBUG`: 디버그 모드 (개발: True, 운영: False)
 - `SECRET_KEY`: 세션 암호화 키 (운영 환경에서는 반드시 변경!)
+
+**프론트엔드 (Vite):**
+- `VITE_PORT`: Vite 개발 서버 포트 (기본: 5173)
+- `VITE_BACKEND_URL`: 백엔드 API URL (기본: http://localhost:8080)
 
 ### 3. 개발 모드 실행
 

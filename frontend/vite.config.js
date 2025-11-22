@@ -9,8 +9,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 export default defineConfig(({ mode }) => {
   // 부모 디렉토리(백엔드)의 .env 파일 로드
   const env = loadEnv(mode, path.resolve(__dirname, '..'), '')
-  const backendPort = env.FLASK_PORT || '5000'
-  const backendUrl = `http://localhost:${backendPort}`
+  
+  // 환경 변수에서 포트와 백엔드 URL 가져오기
+  const vitePort = parseInt(env.VITE_PORT || '5173')
+  const backendUrl = env.VITE_BACKEND_URL || `http://localhost:${env.FLASK_PORT || '8080'}`
 
   return {
     plugins: [react()],
@@ -20,7 +22,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
-      port: 5173,
+      port: vitePort,
       proxy: {
         // Flask 백엔드 API 프록시 설정 (환경변수 사용)
         '/api': {
