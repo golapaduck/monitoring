@@ -341,9 +341,10 @@ class RCONPlugin(PluginBase):
         if not host:
             return False, "서버 주소가 필요합니다"
         
-        port = config.get("port")
+        # port: default 값 적용 (25575)
+        port = config.get("port", 25575)
         if port is None or port == "":
-            return False, "포트가 필요합니다"
+            port = 25575
         
         # 포트를 정수로 변환 시도
         try:

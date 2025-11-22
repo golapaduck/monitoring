@@ -246,15 +246,17 @@ class PalworldPlugin(PluginBase):
             "message": f"알 수 없는 액션: {action_name}"
         }
     
-    def validate_config(self, config: Dict[str, Any]) -> tuple[bool, Optional[str]]:
+    def validate_config(self, config: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
         """설정 유효성 검사."""
-        host = config.get("host", "").strip()
+        # host: default 값 적용
+        host = config.get("host", "localhost").strip()
         if not host:
             return False, "서버 주소가 필요합니다"
         
-        port = config.get("port")
+        # port: default 값 적용
+        port = config.get("port", 8212)
         if port is None or port == "":
-            return False, "포트가 필요합니다"
+            port = 8212
         
         try:
             port = int(port)
@@ -263,6 +265,7 @@ class PalworldPlugin(PluginBase):
         except (ValueError, TypeError):
             return False, "포트는 숫자여야 합니다"
         
+        # username과 password는 필수
         username = config.get("username", "").strip()
         if not username:
             return False, "사용자 이름이 필요합니다"
