@@ -45,13 +45,13 @@ export default defineConfig(({ mode }) => {
           timeout: 10000,
           proxyTimeout: 10000,
         },
-        '/socket.io': {
-          target: backendUrl,
-          changeOrigin: true,
-          ws: true,
-          timeout: 60000,
-          proxyTimeout: 60000,
-        },
+        // '/socket.io': {  // Socket.IO 제거
+        //   target: backendUrl,
+        //   changeOrigin: true,
+        //   ws: true,
+        //   timeout: 60000,
+        //   proxyTimeout: 60000,
+        // },
       },
     },
     build: {
@@ -66,7 +66,7 @@ export default defineConfig(({ mode }) => {
             'vendor': ['react', 'react-dom', 'react-router-dom'],
             'ui': ['lucide-react'],
             'chart': ['recharts'],
-            'socket': ['socket.io-client'],
+            // 'socket': ['socket.io-client'],  // 제거됨
           },
         },
       },
