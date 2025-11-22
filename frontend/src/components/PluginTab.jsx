@@ -241,7 +241,17 @@ function PluginConfigModal({ programId, plugin, onClose, onSuccess }) {
   const loadSchema = async () => {
     try {
       const response = await axios.get(`/api/plugins/available`)
-      const pluginData = response.data.find(p => p.id === plugin.plugin_id)
+      // API 응답이 {plugins: [...]} 형태
+      const plugins = response.data.plugins || response.data || []
+      const pluginData = plugins.find(p => p.id === plugin.plugin_id)
+      
+      console.log('스키마 로드:', {
+        plugin_id: plugin.plugin_id,
+        availablePlugins: plugins,
+        foundPlugin: pluginData,
+        schema: pluginData?.config_schema
+      })
+      
       if (pluginData) {
         setSchema(pluginData.config_schema)
       }
@@ -438,7 +448,17 @@ function PluginActionModal({ plugin, onClose }) {
   const loadActions = async () => {
     try {
       const response = await axios.get('/api/plugins/available')
-      const pluginData = response.data.find(p => p.id === plugin.plugin_id)
+      // API 응답이 {plugins: [...]} 형태
+      const plugins = response.data.plugins || response.data || []
+      const pluginData = plugins.find(p => p.id === plugin.plugin_id)
+      
+      console.log('액션 로드:', {
+        plugin_id: plugin.plugin_id,
+        availablePlugins: plugins,
+        foundPlugin: pluginData,
+        actions: pluginData?.actions
+      })
+      
       if (pluginData) {
         setActions(pluginData.actions)
       }
