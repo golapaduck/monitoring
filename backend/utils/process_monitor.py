@@ -12,16 +12,17 @@ from utils.websocket import emit_program_status, emit_resource_update
 class ProcessMonitor:
     """프로세스 상태를 모니터링하고 예기치 않은 종료를 감지하는 클래스."""
     
-    def __init__(self, check_interval=10):
+    def __init__(self, check_interval=3):
         """
         Args:
-            check_interval: 상태 확인 간격 (초)
+            check_interval: 상태 확인 간격 (초, 기본값: 3초)
         """
         self.check_interval = check_interval
         self.running = False
         self.thread = None
         self.last_status = {}  # {program_name: running_status}
         self.recent_stops = set()  # 최근 의도적으로 종료된 프로그램 이름
+        self.pending_check = False  # 즉시 체크 요청 플래그
         
     def start(self):
         """모니터링 시작."""
@@ -54,8 +55,16 @@ class ProcessMonitor:
             except Exception as e:
                 print(f"⚠️ [Process Monitor] 모니터링 오류: {str(e)}")
             
-            # 다음 체크까지 대기
-            time.sleep(self.check_interval)
+            # 즉시 체크 요청이 있으면 대기 없이 다시 체크
+            if self.pending_check:
+                self.pending_check = False
+                continue
+            
+            # 다음 체크까지 대기 (짧은 간격으로 즉시 체크 요청 감지)
+            for _ in range(int(self.check_interval * 10)):
+                if self.pending_check:
+                    break
+                time.sleep(0.1)
     
     def _check_processes(self):
         """등록된 모든 프로세스 상태 확인 (배치 처리 최적화)."""
@@ -263,4 +272,16 @@ def mark_intentional_stop(program_name):
     global _monitor
     if _monitor:
         _monitor.recent_stops.add(program_name)
-        print(f"✅ [Process Monitor] 의도적 종료 등록: {program_name}")
+        # 즉시 상태 확인 요청
+        request_immediate_check()
+
+
+def request_immediate_check():
+    """즉시 프로세스 상태 확인 요청.
+    
+    프로그램 시작/종료 후 빠르게 상태 변화를 감지하기 위해 사용합니다.
+    """
+    global _monitor
+    if _monitor:
+        _monitor.pending_check = True
+        print("⚡ [Process Monitor] 즉시 상태 확인 요청")

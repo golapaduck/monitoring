@@ -89,9 +89,9 @@ from utils.log_rotation import get_log_rotation
 log_rotation = get_log_rotation()
 log_rotation.start()
 
-# 프로세스 모니터 시작 (10초 간격)
+# 프로세스 모니터 시작 (3초 간격)
 # 항상 실행 (DEBUG 모드에서도 모니터링 필요)
-start_process_monitor(check_interval=10)
+start_process_monitor(check_interval=3)
 # 앱 종료 시 모니터 중지
 atexit.register(stop_process_monitor)
 

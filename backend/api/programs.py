@@ -35,7 +35,7 @@ from utils.database import (
     remove_program_pid,
     log_program_event as db_log_event
 )
-from utils.process_monitor import mark_intentional_stop
+from utils.process_monitor import mark_intentional_stop, request_immediate_check
 from utils.path_validator import validate_program_path, normalize_path, get_path_info
 
 
@@ -131,6 +131,9 @@ def start(program_id):
         db_log_event(program_id, "start", f"사용자: {session.get('user')}, PID: {pid}")
         webhook_urls = program.get("webhook_urls")
         send_webhook_notification(program["name"], "start", f"사용자: {session.get('user')}, PID: {pid}", "success", webhook_urls)
+        
+        # 즉시 상태 확인 요청 (빠른 감지)
+        request_immediate_check()
     
     return jsonify({"success": success, "message": message, "pid": pid})
 
@@ -171,6 +174,9 @@ def stop(program_id):
             db_log_event(program_id, "stop", f"사용자: {session.get('user')}, 타입: {stop_type}")
             webhook_urls = program.get("webhook_urls")
             send_webhook_notification(program["name"], "stop", f"사용자: {session.get('user')}, 타입: {stop_type}", "warning", webhook_urls)
+            
+            # 즉시 상태 확인 요청 (빠른 감지)
+            request_immediate_check()
         
         return jsonify({"success": success, "message": message})
     except Exception as e:
