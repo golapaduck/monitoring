@@ -233,12 +233,12 @@ http://localhost:5173
 ### 프로덕션 모드
 
 ```bash
-# 배치 스크립트 사용
+# 배치 스크립트 사용 (권장)
 scripts\prod.bat
 
 # 또는 수동 실행
 cd frontend && npm run build
-cd ../backend && python serve.py
+python serve.py
 
 # 브라우저 접속
 http://localhost:8080
