@@ -96,6 +96,14 @@ def _handle_login_failure(username: str, security_manager) -> tuple:
 # ===== API 엔드포인트 =====
 
 
+@web_bp.route("/login", methods=["GET"])
+def login_page():
+    """로그인 페이지 (React 앱으로 리다이렉트)."""
+    # React 앱이 라우팅 처리
+    from flask import redirect
+    return redirect("/")
+
+
 @web_bp.route("/api/login", methods=["POST"])
 def login():
     """로그인 API.
