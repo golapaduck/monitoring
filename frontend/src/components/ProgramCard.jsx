@@ -227,6 +227,8 @@ export default memo(ProgramCard, (prevProps, nextProps) => {
   return (
     prevProps.program.id === nextProps.program.id &&
     prevProps.program.running === nextProps.program.running &&
+    prevProps.program.status === nextProps.program.status &&
+    prevProps.program.shutdown_remaining === nextProps.program.shutdown_remaining &&
     prevProps.program.cpu_percent === nextProps.program.cpu_percent &&
     prevProps.program.memory_mb === nextProps.program.memory_mb &&
     prevProps.user?.role === nextProps.user?.role
