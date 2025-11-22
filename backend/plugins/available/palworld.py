@@ -220,16 +220,21 @@ class PalworldPlugin(PluginBase):
             return self._api_request("POST", "/save")
         
         elif action_name == "shutdown_server":
-            body = {}
-            if params.get("waittime"):
-                try:
-                    body["waittime"] = int(params.get("waittime"))
-                except ValueError:
-                    pass
-            if params.get("message"):
-                body["message"] = params.get("message")
+            # shutdown API는 waittime과 message가 required
+            waittime = params.get("waittime", 60)  # 기본 60초
+            try:
+                waittime = int(waittime)
+            except (ValueError, TypeError):
+                waittime = 60
             
-            return self._api_request("POST", "/shutdown", json=body if body else None)
+            message = params.get("message", "서버가 곧 종료됩니다")
+            
+            body = {
+                "waittime": waittime,
+                "message": message
+            }
+            
+            return self._api_request("POST", "/shutdown", json=body)
         
         elif action_name == "force_stop_server":
             return self._api_request("POST", "/stop")

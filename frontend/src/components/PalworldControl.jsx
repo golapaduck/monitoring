@@ -96,15 +96,15 @@ export default function PalworldControl({ programId }) {
     executeAction('announce', { message })
   }
 
-  const handleKickPlayer = (userid) => {
-    if (confirm('이 플레이어를 강퇴하시겠습니까?')) {
-      executeAction('kick_player', { userid })
+  const handleKickPlayer = (playerId, playerName) => {
+    if (confirm(`${playerName}을(를) 강퇴하시겠습니까?`)) {
+      executeAction('kick_player', { userid: playerId, message: '관리자에 의해 강퇴되었습니다' })
     }
   }
 
-  const handleBanPlayer = (userid) => {
-    if (confirm('이 플레이어를 차단하시겠습니까?')) {
-      executeAction('ban_player', { userid })
+  const handleBanPlayer = (playerId, playerName) => {
+    if (confirm(`${playerName}을(를) 차단하시겠습니까?`)) {
+      executeAction('ban_player', { userid: playerId, message: '관리자에 의해 차단되었습니다' })
     }
   }
 
@@ -198,18 +198,19 @@ export default function PalworldControl({ programId }) {
               <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div>
                   <p className="font-medium text-gray-900">{player.name}</p>
-                  <p className="text-xs text-gray-500">ID: {player.userid}</p>
+                  <p className="text-xs text-gray-500">Player ID: {player.playerId || player.playerid || 'N/A'}</p>
+                  <p className="text-xs text-gray-400">User ID: {player.userId || player.userid || 'N/A'}</p>
                 </div>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => handleKickPlayer(player.userid)}
+                    onClick={() => handleKickPlayer(player.playerId || player.playerid, player.name)}
                     disabled={actionLoading}
                     className="px-3 py-1 text-sm bg-orange-600 text-white rounded hover:bg-orange-700 disabled:opacity-50"
                   >
                     강퇴
                   </button>
                   <button
-                    onClick={() => handleBanPlayer(player.userid)}
+                    onClick={() => handleBanPlayer(player.playerId || player.playerid, player.name)}
                     disabled={actionLoading}
                     className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
                   >
