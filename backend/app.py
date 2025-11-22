@@ -114,19 +114,56 @@ log_rotation.start()
 # 프로세스 모니터 시작 (5초 간격 - 게임 서버 환경)
 # 항상 실행 (DEBUG 모드에서도 모니터링 필요)
 start_process_monitor(check_interval=5)
-# 앱 종료 시 모니터 중지
-atexit.register(stop_process_monitor)
 
 # 메트릭 버퍼 시작 (배치 쓰기 - 게임 서버 환경)
 from utils.metric_buffer import get_metric_buffer, stop_metric_buffer
 metric_buffer = get_metric_buffer()
-atexit.register(stop_metric_buffer)
 print("✅ [Game Server Mode] 메트릭 버퍼링 시작 (디스크 I/O 최적화)")
 
 # 메모리 관리자 초기화 (게임 서버 환경)
 from utils.memory_manager import get_memory_manager
 memory_manager = get_memory_manager()
 print("✅ [Game Server Mode] 메모리 관리자 초기화")
+
+# 앱 종료 시 전체 리소스 정리
+def cleanup_all_resources():
+    """모든 리소스 정리 (앱 종료 시)."""
+    print("🧹 [Cleanup] 리소스 정리 시작")
+    
+    # 1. 메트릭 버퍼 플러시 및 중지
+    try:
+        stop_metric_buffer()
+        print("✅ [Cleanup] 메트릭 버퍼 정리 완료")
+    except Exception as e:
+        print(f"⚠️ [Cleanup] 메트릭 버퍼 정리 실패: {e}")
+    
+    # 2. 프로세스 모니터 중지
+    try:
+        stop_process_monitor()
+        print("✅ [Cleanup] 프로세스 모니터 정리 완료")
+    except Exception as e:
+        print(f"⚠️ [Cleanup] 프로세스 모니터 정리 실패: {e}")
+    
+    # 3. 데이터베이스 연결 풀 종료
+    try:
+        from utils.db_pool import get_pool
+        pool = get_pool()
+        pool.close_all()
+        print("✅ [Cleanup] DB 연결 풀 정리 완료")
+    except Exception as e:
+        print(f"⚠️ [Cleanup] DB 풀 정리 실패: {e}")
+    
+    # 4. 웹훅 스레드 풀 종료
+    try:
+        from utils.webhook import shutdown_webhook_executor
+        shutdown_webhook_executor()
+        print("✅ [Cleanup] 웹훅 스레드 풀 정리 완료")
+    except Exception as e:
+        print(f"⚠️ [Cleanup] 웹훅 풀 정리 실패: {e}")
+    
+    print("✅ [Cleanup] 리소스 정리 완료")
+
+atexit.register(cleanup_all_resources)
 
 # === 에러 핸들러 등록 ===
 from utils.exceptions import MonitoringError

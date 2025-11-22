@@ -18,6 +18,7 @@ class ProcessMonitor:
         self.thread = None
         self.check_interval = 5  # 5초 간격으로 상태 확인 (게임 서버 환경 최적화)
         self.base_interval = 5  # 기본 간격
+        self.lock = threading.RLock()  # 동시성 제어용 락
         self.last_status = {}  # {program_name: running_status}
         self.recent_stops = set()  # 최근 의도적으로 종료된 프로그램 이름
         self.pending_check = False  # 즉시 체크 요청 플래그
@@ -112,13 +113,16 @@ class ProcessMonitor:
             # 메트릭 수집을 비동기로 처리 (상태 확인을 블로킹하지 않음)
             # 상태 변화 시에만 메트릭 수집 (효율성)
             if is_running and current_pid:
-                self.running_processes[program_id] = current_pid
+                with self.lock:
+                    self.running_processes[program_id] = current_pid
                 self._collect_metrics_async(program_id, current_pid)
             elif program_id in self.running_processes:
                 # 프로세스가 종료됨
-                del self.running_processes[program_id]
-                if program_id in self.last_metrics:
-                    del self.last_metrics[program_id]
+                with self.lock:
+                    if program_id in self.running_processes:
+                        del self.running_processes[program_id]
+                    if program_id in self.last_metrics:
+                        del self.last_metrics[program_id]
             
             # 이전 상태와 비교
             was_running = self.last_status.get(program_name)
@@ -170,8 +174,28 @@ class ProcessMonitor:
         상태 변화와 무관하게 주기적으로 메트릭을 수집하여
         차트 업데이트를 부드럽게 합니다.
         """
-        for program_id, pid in list(self.running_processes.items()):
+        # 종료된 스레드 정리 (메모리 누수 방지)
+        self._cleanup_dead_threads()
+        
+        with self.lock:
+            running_processes_copy = list(self.running_processes.items())
+        
+        for program_id, pid in running_processes_copy:
             self._collect_metrics_async(program_id, pid)
+    
+    def _cleanup_dead_threads(self):
+        """종료된 메트릭 수집 스레드 정리 (메모리 누수 방지)."""
+        with self.lock:
+            dead_keys = []
+            for key, thread in self.metric_threads.items():
+                if not thread.is_alive():
+                    dead_keys.append(key)
+            
+            for key in dead_keys:
+                del self.metric_threads[key]
+            
+            if dead_keys:
+                logger.debug(f"🧹 [Process Monitor] 종료된 스레드 {len(dead_keys)}개 정리")
     
     def _collect_metrics_async(self, program_id, pid):
         """메트릭을 비동기로 수집 (상태 확인을 블로킹하지 않음).

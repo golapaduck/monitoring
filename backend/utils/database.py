@@ -5,6 +5,7 @@ from pathlib import Path
 from datetime import datetime
 import json
 import logging
+from contextlib import contextmanager
 from config import DATA_DIR
 from utils.db_pool import get_pool, init_pool
 
@@ -12,6 +13,38 @@ logger = logging.getLogger(__name__)
 
 # 데이터베이스 파일 경로
 DB_PATH = Path(DATA_DIR) / "monitoring.db"
+
+
+@contextmanager
+def get_db_connection():
+    """데이터베이스 연결 context manager (자동 커밋/롤백/종료).
+    
+    사용 예:
+        with get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("...")
+    
+    Yields:
+        sqlite3.Connection: 데이터베이스 연결 객체
+    """
+    conn = None
+    try:
+        pool = get_pool()
+        conn = pool.get_connection()
+        yield conn
+        conn.commit()
+    except Exception as e:
+        if conn:
+            conn.rollback()
+            logger.error(f"❌ [Database] 트랜잭션 롤백: {str(e)}")
+        raise
+    finally:
+        if conn:
+            try:
+                pool = get_pool()
+                pool.return_connection(conn)
+            except Exception as e:
+                logger.error(f"❌ [Database] 연결 반환 실패: {str(e)}")
 
 
 def get_connection():

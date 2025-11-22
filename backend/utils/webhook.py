@@ -319,30 +319,22 @@ def send_webhook_notification(program_name, event_type, details="", status="info
     if not webhook_urls:
         return True, "No valid webhook URLs configured"
     
-    # 각 웹훅 URL에 대해 비동기 전송
+    # 각 웹훅 URL에 대해 비동기 전송 (ThreadPoolExecutor 사용)
     for url in webhook_urls:
         # 에러 처리를 위한 래퍼 함수
         def _send_with_error_handling(webhook_url=url):
             import sys
             try:
-                print(f"[Debug] 웹훅 스레드 시작: {program_name} - {event_type}")
-                sys.stdout.flush()
+                logger.debug(f"웹훅 전송 시작: {program_name} - {event_type}")
                 result = _send_webhook_sync(program_name, event_type, details, status, webhook_url)
-                print(f"[Debug] 웹훅 스레드 완료: {program_name} - {event_type}, 결과: {result}")
-                sys.stdout.flush()
+                logger.debug(f"웹훅 전송 완료: {program_name} - {event_type}, 결과: {result}")
             except Exception as e:
-                print(f"💥 [Webhook Thread Error] {program_name} - {event_type} ({webhook_url[:50] if webhook_url else 'None'}...): {str(e)}")
-                sys.stdout.flush()
+                logger.error(f"웹훅 전송 오류: {program_name} - {event_type} ({webhook_url[:50] if webhook_url else 'None'}...): {str(e)}")
                 import traceback
                 traceback.print_exc()
         
-        # 백그라운드 스레드에서 웹훅 전송
-        thread = threading.Thread(
-            target=_send_with_error_handling,
-            daemon=True,
-            name=f"Webhook-{program_name}-{event_type}-{webhook_urls.index(url)}"
-        )
-        thread.start()
+        # ThreadPoolExecutor로 웹훅 전송 (스레드 재사용)
+        _webhook_executor.submit(_send_with_error_handling)
     
     print(f"🚀 [Webhook] 비동기 전송 시작: {program_name} - {event_type} ({len(webhook_urls)}개 웹훅)")
     return True, f"Webhook queued for async delivery ({len(webhook_urls)} URLs)"
@@ -434,3 +426,12 @@ def test_webhook(url):
         error_msg = f"오류 발생: {str(e)}"
         print(f"💥 [Webhook Test Unexpected Error] {error_msg}")
         return False, error_msg
+
+
+def shutdown_webhook_executor():
+    """웹훅 스레드 풀 종료 (리소스 정리)."""
+    global _webhook_executor
+    if _webhook_executor:
+        logger.info("🛑 [Webhook] 스레드 풀 종료 중...")
+        _webhook_executor.shutdown(wait=True, cancel_futures=False)
+        logger.info("✅ [Webhook] 스레드 풀 종료 완료")
