@@ -96,46 +96,65 @@ def _find_by_name(program_name: str) -> Tuple[bool, Optional[int]]:
 
 
 def get_programs_status_batch(programs: List[Dict]) -> List[Dict]:
-    """여러 프로그램의 상태를 한 번에 조회 (배치 처리).
+    """여러 프로그램의 상태를 한 번에 조회 (배치 처리 - PowerShell 사용).
     
-    psutil.process_iter()를 한 번만 호출하여 성능을 크게 향상시킵니다.
+    PowerShell Get-Process를 사용하여 성능을 향상시킵니다.
     
     Args:
         programs: 프로그램 목록 (dict 리스트)
         
     Returns:
         list: 상태가 추가된 프로그램 목록
-    
-    Example:
-        programs = [
-            {"id": 1, "name": "notepad", "path": "C:\\Windows\\notepad.exe"},
-            {"id": 2, "name": "calc", "path": "C:\\Windows\\calc.exe"}
-        ]
-        result = get_programs_status_batch(programs)
-        # [
-        #     {"id": 1, ..., "running": True, "pid": 1234},
-        #     {"id": 2, ..., "running": False, "pid": None}
-        # ]
     """
-    # 1단계: 모든 실행 중인 프로세스 정보를 한 번에 수집
+    # 1단계: PowerShell로 모든 프로세스 정보 수집
     running_processes = {}
     try:
-        for proc in psutil.process_iter(['name', 'exe', 'pid']):
+        from utils.powershell_agent import get_powershell_agent
+        agent = get_powershell_agent()
+        
+        # PowerShell 스크립트: 모든 프로세스 정보 JSON으로 반환
+        script = """
+        Get-Process | Select-Object Name, Id, Path | ConvertTo-Json
+        """
+        
+        command_id = agent.execute(script, timeout=10)
+        command = agent.get_command(command_id)
+        
+        # 명령 완료 대기
+        import time
+        for _ in range(100):
+            if command.completed_at:
+                break
+            time.sleep(0.1)
+        
+        if command.result and command.output:
+            import json
             try:
-                if proc.info['name']:
-                    name = proc.info['name'].lower()
-                    running_processes[name] = proc.info['pid']
+                processes = json.loads(command.output)
+                if not isinstance(processes, list):
+                    processes = [processes]
                 
-                # 전체 경로도 저장 (더 정확한 매칭)
-                if proc.info['exe']:
-                    exe_name = Path(proc.info['exe']).name.lower()
-                    if exe_name not in running_processes:
-                        running_processes[exe_name] = proc.info['pid']
-                        
-            except (psutil.NoSuchProcess, psutil.AccessDenied):
-                continue
+                for proc in processes:
+                    name = proc.get('Name', '').lower()
+                    pid = proc.get('Id')
+                    if name and pid:
+                        running_processes[name] = pid
+                        # exe 이름으로도 저장
+                        if proc.get('Path'):
+                            exe_name = Path(proc['Path']).name.lower()
+                            if exe_name not in running_processes:
+                                running_processes[exe_name] = pid
+            except (json.JSONDecodeError, Exception) as e:
+                print(f"⚠️ [Process Manager] PowerShell 결과 파싱 오류: {str(e)}")
+                # 폴백: psutil 사용
+                running_processes = _get_processes_psutil()
+    
+    except RuntimeError:
+        # 에이전트 미초기화 시 psutil 사용
+        running_processes = _get_processes_psutil()
     except Exception as e:
-        print(f"⚠️ [Process Manager] 프로세스 목록 조회 오류: {str(e)}")
+        print(f"⚠️ [Process Manager] PowerShell 프로세스 조회 오류: {str(e)}")
+        running_processes = _get_processes_psutil()
     
     # 2단계: 각 프로그램의 상태 확인
     result = []
@@ -173,6 +192,33 @@ def get_programs_status_batch(programs: List[Dict]) -> List[Dict]:
             })
     
     return result
+
+
+def _get_processes_psutil() -> Dict[str, int]:
+    """psutil을 사용한 프로세스 정보 수집 (폴백).
+    
+    Returns:
+        프로세스 이름 -> PID 딕셔너리
+    """
+    running_processes = {}
+    try:
+        for proc in psutil.process_iter(['name', 'exe', 'pid']):
+            try:
+                if proc.info['name']:
+                    name = proc.info['name'].lower()
+                    running_processes[name] = proc.info['pid']
+                
+                if proc.info['exe']:
+                    exe_name = Path(proc.info['exe']).name.lower()
+                    if exe_name not in running_processes:
+                        running_processes[exe_name] = proc.info['pid']
+                        
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                continue
+    except Exception as e:
+        print(f"⚠️ [Process Manager] psutil 프로세스 조회 오류: {str(e)}")
+    
+    return running_processes
 
 
 def start_program(program_path: str, args: str = "") -> Tuple[bool, str, Optional[int]]:
@@ -235,11 +281,11 @@ def start_program(program_path: str, args: str = "") -> Tuple[bool, str, Optiona
 
 
 def stop_program(program_path: str, force: bool = False) -> Tuple[bool, str]:
-    """프로그램 종료.
+    """프로그램 종료 (PowerShell 사용).
     
     Args:
         program_path: 프로그램 실행 파일 경로
-        force: True이면 자식 프로세스까지 강제 종료 (taskkill /T 사용)
+        force: True이면 자식 프로세스까지 강제 종료
         
     Returns:
         tuple: (성공 여부, 메시지)
@@ -247,48 +293,56 @@ def stop_program(program_path: str, force: bool = False) -> Tuple[bool, str]:
     try:
         program_name = Path(program_path).name
         
-        if force:
-            # Windows taskkill 명령어로 자식 프로세스까지 강제 종료
-            # /F: 강제 종료, /T: 자식 프로세스 트리 종료, /IM: 이미지 이름
-            try:
-                result = subprocess.run(
-                    ["taskkill", "/F", "/T", "/IM", program_name],
-                    capture_output=True,
-                    text=True,
-                    timeout=10
-                )
-                
-                if result.returncode == 0:
-                    print(f"✅ [Process Manager] 강제 종료 성공: {program_name}")
-                    return True, "프로그램과 모든 자식 프로세스가 강제 종료되었습니다."
-                elif result.returncode == 128:
-                    # 프로세스를 찾을 수 없음 (이미 종료됨)
-                    print(f"ℹ️ [Process Manager] 프로세스가 이미 종료됨: {program_name}")
-                    return True, "프로그램이 이미 종료되었습니다."
-                else:
-                    # taskkill 실패 시 psutil로 시도
-                    print(f"⚠️ [Process Manager] taskkill 실패, psutil로 재시도: {program_name}")
-                    return _stop_with_psutil(program_path)
-            except subprocess.TimeoutExpired:
-                return False, "종료 명령 시간 초과"
-            except Exception as e:
-                print(f"⚠️ [Process Manager] taskkill 오류, psutil로 재시도: {str(e)}")
-                return _stop_with_psutil(program_path)
-        else:
-            # 일반 종료 (psutil 사용)
-            return _stop_with_psutil(program_path)
+        # PowerShell 에이전트 사용
+        try:
+            from utils.powershell_agent import get_powershell_agent
+            agent = get_powershell_agent()
+            
+            if force:
+                # PowerShell 강제 종료 스크립트
+                script = f'Get-Process -Name "{Path(program_name).stem}" -ErrorAction SilentlyContinue | Stop-Process -Force'
+            else:
+                # PowerShell 일반 종료 스크립트
+                script = f'Get-Process -Name "{Path(program_name).stem}" -ErrorAction SilentlyContinue | Stop-Process'
+            
+            command_id = agent.execute(script, timeout=10)
+            command = agent.get_command(command_id)
+            
+            # 명령 완료 대기
+            import time
+            for _ in range(100):
+                if command.completed_at:
+                    break
+                time.sleep(0.1)
+            
+            if command.result or command.error == "":
+                msg = "프로그램과 모든 자식 프로세스가 강제 종료되었습니다." if force else "프로그램이 종료되었습니다."
+                print(f"✅ [Process Manager] 종료 성공: {program_name}")
+                return True, msg
+            else:
+                # PowerShell 실패 시 psutil로 폴백
+                print(f"⚠️ [Process Manager] PowerShell 종료 실패, psutil로 재시도: {program_name}")
+                return _stop_with_psutil(program_path, force)
+        
+        except RuntimeError:
+            # 에이전트 미초기화 시 psutil 사용
+            return _stop_with_psutil(program_path, force)
+        except Exception as e:
+            print(f"⚠️ [Process Manager] PowerShell 종료 오류: {str(e)}")
+            return _stop_with_psutil(program_path, force)
             
     except Exception as e:
         return False, f"종료 실패: {str(e)}"
 
 
-def _stop_with_psutil(program_path):
-    """psutil을 사용한 프로그램 종료 (내부 함수).
+def _stop_with_psutil(program_path: str, force: bool = False) -> Tuple[bool, str]:
+    """psutil을 사용한 프로그램 종료 (폴백 함수).
     
     자식 프로세스까지 모두 종료합니다.
     
     Args:
         program_path: 프로그램 실행 파일 경로
+        force: True이면 강제 종료
         
     Returns:
         tuple: (성공 여부, 메시지)
