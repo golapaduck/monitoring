@@ -9,6 +9,8 @@ programs_api = Blueprint('programs_api', __name__, url_prefix='/api/programs')
 # 설정 및 유틸리티 임포트
 from config import PROGRAMS_JSON, STATUS_JSON
 from utils.data_manager import load_json, save_json
+from utils.decorators import require_auth, require_admin
+from utils.responses import success_response, error_response, created_response
 from utils.process_manager import (
     get_process_status,
     start_program,
@@ -33,11 +35,9 @@ from utils.path_validator import validate_program_path, normalize_path, get_path
 
 
 @programs_api.route("", methods=["GET", "POST"])
+@require_auth
 def programs():
     """프로그램 목록 조회 및 등록 API."""
-    if "user" not in session:
-        return jsonify({"error": "Unauthorized"}), 401
-    
     if request.method == "GET":
         # SQLite에서 프로그램 목록 조회
         programs = get_all_programs()
@@ -45,21 +45,21 @@ def programs():
     
     # POST - 프로그램 등록 (관리자만)
     if session.get("role") != "admin":
-        return jsonify({"error": "Forbidden"}), 403
+        return error_response("관리자 권한이 필요합니다", 403)
     
     data = request.get_json()
     
     # 필수 필드 확인
     if not data.get("name"):
-        return jsonify({"error": "프로그램 이름이 필요합니다."}), 400
+        return error_response("프로그램 이름이 필요합니다", 400)
     
     if not data.get("path"):
-        return jsonify({"error": "프로그램 경로가 필요합니다."}), 400
+        return error_response("프로그램 경로가 필요합니다", 400)
     
     # 경로 유효성 검증
     is_valid, error_msg = validate_program_path(data["path"])
     if not is_valid:
-        return jsonify({"error": error_msg}), 400
+        return error_response(error_msg, 400)
     
     # 경로 정규화 (절대 경로로 변환)
     normalized_path = normalize_path(data["path"])
@@ -81,18 +81,21 @@ def programs():
     
     print(f"✅ [Programs API] 프로그램 등록: {data['name']} -> {normalized_path} (ID: {program_id})")
     
-    return jsonify({"success": True, "message": "프로그램이 등록되었습니다.", "id": program_id})
+    return created_response(
+        data={"id": program_id, "name": data["name"], "path": normalized_path},
+        message="프로그램이 등록되었습니다",
+        resource_id=program_id
+    )
 
 
 @programs_api.route("/<int:program_id>/start", methods=["POST"])
+@require_auth
+@require_admin
 def start(program_id):
     """프로그램 실행 API (관리자만)."""
-    if "user" not in session or session.get("role") != "admin":
-        return jsonify({"error": "Forbidden"}), 403
-    
     program = get_program_by_id(program_id)
     if not program:
-        return jsonify({"error": "Program not found"}), 404
+        return error_response("프로그램을 찾을 수 없습니다", 404)
     
     success, message, pid = start_program(program["path"], program.get("args", ""))
     

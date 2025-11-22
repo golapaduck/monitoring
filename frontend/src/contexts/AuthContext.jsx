@@ -1,15 +1,15 @@
 /**
- * 인증 Context
+ * 인증 Context Provider
  * 
  * 사용자 인증 상태를 전역으로 관리합니다.
  * Props drilling을 방지하고 어디서든 사용자 정보에 접근할 수 있습니다.
  */
 
-import { createContext, useContext, useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { checkSession } from '../lib/api'
+import { AuthContext } from './AuthContextValue'
 
-const AuthContext = createContext(null)
-
+// AuthProvider 컴포넌트
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -59,10 +59,3 @@ export function AuthProvider({ children }) {
   )
 }
 
-export function useAuth() {
-  const context = useContext(AuthContext)
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider')
-  }
-  return context
-}

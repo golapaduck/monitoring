@@ -9,13 +9,13 @@ status_api = Blueprint('status_api', __name__, url_prefix='/api/status')
 # 설정 및 유틸리티 임포트
 from utils.database import get_all_programs
 from utils.process_manager import get_programs_status_batch
+from utils.decorators import require_auth
 
 
 @status_api.route("", methods=["GET"])
+@require_auth
 def get_status():
     """프로그램 상태 조회 API (기본 엔드포인트) - 배치 처리 최적화."""
-    if "user" not in session:
-        return jsonify({"error": "Unauthorized"}), 401
     
     # 데이터베이스에서 직접 조회
     programs = get_all_programs()
@@ -31,10 +31,9 @@ def get_status():
 
 # 향후 확장 가능한 엔드포인트들
 @status_api.route("/system", methods=["GET"])
+@require_auth
 def get_system_status():
     """시스템 리소스 상태 조회 (CPU, 메모리, 디스크 등)."""
-    if "user" not in session:
-        return jsonify({"error": "Unauthorized"}), 401
     
     import psutil
     
