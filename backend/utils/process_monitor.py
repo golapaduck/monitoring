@@ -6,6 +6,7 @@ import psutil
 from utils.process_manager import get_process_status
 from utils.webhook import send_webhook_notification
 from utils.database import get_all_programs, log_program_event, record_resource_usage
+from utils.websocket import emit_program_status, emit_resource_update
 
 
 class ProcessMonitor:
@@ -88,6 +89,18 @@ class ProcessMonitor:
                     else:
                         # 프로세스가 예기치 않게 종료됨
                         self._handle_unexpected_termination(program_id, program_name, webhook_urls)
+                    
+                    # 웹소켓으로 상태 변경 전송
+                    emit_program_status(program_id, {
+                        'running': False,
+                        'pid': None
+                    })
+                elif not was_running and is_running:
+                    # 프로세스가 시작됨
+                    emit_program_status(program_id, {
+                        'running': True,
+                        'pid': current_pid
+                    })
             
             # 현재 상태 저장
             self.last_status[program_name] = is_running
@@ -111,6 +124,12 @@ class ProcessMonitor:
             
             # 데이터베이스에 기록
             record_resource_usage(program_id, cpu_percent, memory_mb)
+            
+            # 웹소켓으로 리소스 업데이트 전송
+            emit_resource_update(program_id, {
+                'cpu_percent': round(cpu_percent, 2),
+                'memory_mb': round(memory_mb, 2)
+            })
             
         except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
             # 프로세스가 종료되었거나 접근 권한이 없는 경우 무시

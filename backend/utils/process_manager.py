@@ -6,9 +6,9 @@ import psutil
 
 
 def get_process_status(program_path, pid=None):
-    """프로그램 경로로 프로세스 실행 여부 확인.
+    """프로그램 경로로 프로세스 실행 여부 확인 (더블 체크: PID + 이름).
     
-    PID가 제공되면 먼저 PID로 확인하고, 없으면 프로그램 이름으로 확인합니다.
+    PID와 프로세스 이름을 모두 검증하여 정확성을 높입니다.
     
     Args:
         program_path: 프로그램 실행 파일 경로
@@ -18,38 +18,86 @@ def get_process_status(program_path, pid=None):
         tuple: (실행 여부, 현재 PID 또는 None)
     """
     try:
-        # 1단계: PID가 제공된 경우 먼저 PID로 확인
+        program_name = Path(program_path).name.lower()
+        
+        # 1단계: PID가 제공된 경우 PID + 이름 더블 체크
         if pid is not None:
             try:
                 proc = psutil.Process(pid)
+                
                 # 프로세스가 존재하고 실행 중인지 확인
-                if proc.is_running():
-                    # 프로그램 경로가 일치하는지 확인
-                    try:
-                        proc_exe = proc.exe()
-                        if proc_exe and Path(proc_exe).name.lower() == Path(program_path).name.lower():
-                            return True, pid
-                    except (psutil.AccessDenied, psutil.NoSuchProcess):
-                        # 권한 문제로 경로를 확인할 수 없는 경우, 이름만으로 확인
-                        if proc.name().lower() == Path(program_path).name.lower():
-                            return True, pid
-            except (psutil.NoSuchProcess, psutil.AccessDenied):
-                # PID로 프로세스를 찾을 수 없으면 2단계로 진행
-                pass
+                if not proc.is_running():
+                    print(f"🔍 [Process Manager] PID {pid} 프로세스가 실행 중이 아님")
+                    # PID는 존재하지만 실행 중이 아니면 2단계로
+                    return _find_by_name(program_name)
+                
+                # 더블 체크: PID + 프로세스 이름 검증
+                try:
+                    proc_name = proc.name().lower()
+                    proc_exe = proc.exe()
+                    
+                    # 이름 일치 확인
+                    if proc_name == program_name:
+                        print(f"✅ [Process Manager] PID {pid} + 이름 '{program_name}' 일치 확인")
+                        return True, pid
+                    
+                    # 전체 경로로도 확인
+                    if proc_exe and Path(proc_exe).name.lower() == program_name:
+                        print(f"✅ [Process Manager] PID {pid} + 경로 '{program_name}' 일치 확인")
+                        return True, pid
+                    
+                    # PID는 존재하지만 이름이 다름 (프로세스 재사용 가능성)
+                    print(f"⚠️ [Process Manager] PID {pid} 존재하지만 이름 불일치: {proc_name} != {program_name}")
+                    return _find_by_name(program_name)
+                    
+                except (psutil.AccessDenied, psutil.NoSuchProcess) as e:
+                    print(f"⚠️ [Process Manager] PID {pid} 접근 거부 또는 없음: {str(e)}")
+                    # 권한 문제 또는 프로세스 사라짐 - 2단계로
+                    return _find_by_name(program_name)
+                    
+            except (psutil.NoSuchProcess, psutil.AccessDenied) as e:
+                print(f"⚠️ [Process Manager] PID {pid} 확인 실패: {str(e)}")
+                # PID로 프로세스를 찾을 수 없으면 2단계로
+                return _find_by_name(program_name)
         
-        # 2단계: 프로그램 이름으로 검색
-        program_name = Path(program_path).name
+        # 2단계: PID가 없거나 검증 실패 시 이름으로 검색
+        return _find_by_name(program_name)
+        
+    except Exception as e:
+        print(f"⚠️ [Process Manager] 프로세스 상태 확인 오류: {str(e)}")
+        return False, None
+
+
+def _find_by_name(program_name):
+    """프로세스 이름으로 검색 (내부 헬퍼 함수).
+    
+    Args:
+        program_name: 프로그램 이름 (소문자)
+        
+    Returns:
+        tuple: (실행 여부, PID 또는 None)
+    """
+    try:
         for proc in psutil.process_iter(['name', 'exe', 'pid']):
             try:
-                # 실행 파일 경로로 비교 (더 정확함)
-                if proc.info['exe'] and Path(proc.info['exe']).name.lower() == program_name.lower():
+                # 프로세스 이름으로 비교
+                if proc.info['name'] and proc.info['name'].lower() == program_name:
+                    print(f"🔍 [Process Manager] 이름으로 발견: {program_name} (PID: {proc.info['pid']})")
                     return True, proc.info['pid']
+                
+                # 실행 파일 경로로도 비교 (더 정확함)
+                if proc.info['exe'] and Path(proc.info['exe']).name.lower() == program_name:
+                    print(f"🔍 [Process Manager] 경로로 발견: {program_name} (PID: {proc.info['pid']})")
+                    return True, proc.info['pid']
+                    
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue
         
+        print(f"❌ [Process Manager] 프로세스 없음: {program_name}")
         return False, None
+        
     except Exception as e:
-        print(f"⚠️ [Process Manager] 프로세스 상태 확인 오류: {str(e)}")
+        print(f"⚠️ [Process Manager] 이름 검색 오류: {str(e)}")
         return False, None
 
 

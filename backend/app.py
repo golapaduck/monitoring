@@ -28,6 +28,10 @@ import os
 app = Flask(__name__)
 app.config.from_object(Config)
 
+# SocketIO 초기화
+from utils.websocket import init_socketio
+socketio = init_socketio(app)
+
 # 세션 타임아웃 설정
 app.permanent_session_lifetime = timedelta(seconds=Config.PERMANENT_SESSION_LIFETIME)
 
@@ -64,6 +68,11 @@ if saved_plugins:
             print(f"[Plugin System] ❌ {plugin_id} (프로그램 {program_id}) - 로드 실패")
 else:
     print("[Plugin System] 저장된 플러그인 없음")
+
+# 로그 로테이션 시작
+from utils.log_rotation import get_log_rotation
+log_rotation = get_log_rotation()
+log_rotation.start()
 
 # 프로세스 모니터 시작 (10초 간격)
 # 항상 실행 (DEBUG 모드에서도 모니터링 필요)
@@ -118,9 +127,12 @@ else:
 
 if __name__ == "__main__":
     # Config에서 설정 읽기
-    app.run(
+    # SocketIO 사용 시 socketio.run() 사용
+    socketio.run(
+        app,
         host=Config.FLASK_HOST,
         port=Config.FLASK_PORT,
         debug=Config.FLASK_DEBUG,
-        use_reloader=False  # 자동 재시작 비활성화
+        use_reloader=False,  # 자동 재시작 비활성화
+        allow_unsafe_werkzeug=True  # 개발 모드에서 Werkzeug 사용 허용
     )
