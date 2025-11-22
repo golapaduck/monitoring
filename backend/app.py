@@ -44,9 +44,14 @@ users_data = migrate_plain_passwords(users_data)
 save_json(USERS_JSON, users_data)
 
 # SQLite 데이터베이스 초기화 및 마이그레이션
-from utils.database import init_database, migrate_from_json, get_all_plugin_configs
+from utils.database import init_database, migrate_from_json, get_all_plugin_configs, DB_PATH
+from utils.db_pool import init_pool
 init_database()
 migrate_from_json()
+
+# DB 연결 풀 초기화 (5개 연결)
+init_pool(str(DB_PATH), pool_size=5)
+print("[Database] DB 연결 풀 초기화 완료")
 
 # 플러그인 시스템 초기화 및 저장된 플러그인 자동 로드
 from plugins.loader import get_plugin_loader

@@ -4,21 +4,31 @@ import sqlite3
 from pathlib import Path
 from datetime import datetime
 import json
+import logging
 from config import DATA_DIR
+from utils.db_pool import get_pool, init_pool
+
+logger = logging.getLogger(__name__)
 
 # 데이터베이스 파일 경로
 DB_PATH = Path(DATA_DIR) / "monitoring.db"
 
 
 def get_connection():
-    """데이터베이스 연결 반환.
+    """데이터베이스 연결 반환 (연결 풀 사용).
     
     Returns:
         sqlite3.Connection: 데이터베이스 연결 객체
     """
-    conn = sqlite3.connect(str(DB_PATH))
-    conn.row_factory = sqlite3.Row  # 딕셔너리 형태로 결과 반환
-    return conn
+    try:
+        pool = get_pool()
+        return pool.get_connection()
+    except RuntimeError:
+        # 풀이 초기화되지 않았으면 직접 연결
+        logger.debug("DB 연결 풀 미초기화, 직접 연결 사용")
+        conn = sqlite3.connect(str(DB_PATH))
+        conn.row_factory = sqlite3.Row
+        return conn
 
 
 def init_database():
