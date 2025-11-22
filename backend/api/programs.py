@@ -212,6 +212,30 @@ def restart(program_id):
     return jsonify({"success": success, "message": message, "pid": pid})
 
 
+@programs_api.route("/<int:program_id>", methods=["GET"])
+@require_auth
+def get_program(program_id):
+    """프로그램 상세 조회 API (캐싱 적용)."""
+    # 캐시 확인 (30초 TTL)
+    cache = get_cache()
+    cache_key = f"program:{program_id}"
+    cached_program = cache.get(cache_key)
+    if cached_program is not None:
+        logger.debug(f"프로그램 캐시 히트: program_id={program_id}")
+        return jsonify({"program": cached_program})
+    
+    # DB에서 조회
+    program = get_program_by_id(program_id)
+    if not program:
+        return error_response("프로그램을 찾을 수 없습니다", 404)
+    
+    # 캐시에 저장 (30초)
+    cache.set(cache_key, program)
+    logger.debug(f"프로그램 캐시 저장: program_id={program_id}")
+    
+    return jsonify({"program": program})
+
+
 @programs_api.route("/<int:program_id>", methods=["PUT"])
 def update(program_id):
     """프로그램 정보 수정 API (관리자만)."""
@@ -257,6 +281,12 @@ def update(program_id):
     
     print(f"✅ [Programs API] 프로그램 수정: {data['name']} -> {normalized_path}")
     
+    # 캐시 무효화
+    cache = get_cache()
+    cache.delete("all_programs")
+    cache.delete(f"program:{program_id}")
+    logger.debug(f"프로그램 캐시 무효화: program_id={program_id}")
+    
     return jsonify({"success": True, "message": "프로그램 정보가 수정되었습니다."})
 
 
@@ -274,14 +304,28 @@ def delete(program_id):
     
     print(f"🗑️ [Programs API] 프로그램 삭제: {program['name']}")
     
+    # 캐시 무효화
+    cache = get_cache()
+    cache.delete("all_programs")
+    cache.delete(f"program:{program_id}")
+    logger.debug(f"프로그램 캐시 무효화: program_id={program_id}")
+    
     return jsonify({"success": True})
 
 
 @programs_api.route("/status", methods=["GET"])
 def status():
-    """모든 프로그램의 실시간 상태 조회 (CPU/메모리 사용량 및 가동 시간 포함)."""
+    """모든 프로그램의 실시간 상태 조회 (캐싱 적용 - 2초 TTL)."""
     if "user" not in session:
         return jsonify({"error": "Unauthorized"}), 401
+    
+    # 캐시 확인 (2초 TTL - 실시간 업데이트와 성능 균형)
+    cache = get_cache()
+    cache_key = "programs_status"
+    cached_status = cache.get(cache_key)
+    if cached_status is not None:
+        logger.debug("프로그램 상태 캐시 히트")
+        return jsonify(cached_status)
     
     programs = get_all_programs()
     status_list = []
@@ -324,6 +368,10 @@ def status():
         "programs_status": status_list
     }
     save_json(STATUS_JSON, status_data)
+    
+    # 캐시에 저장 (2초 - 웹소켓 업데이트 간격과 동기화)
+    cache.set(cache_key, status_data)
+    logger.debug(f"프로그램 상태 캐시 저장: {len(status_list)}개")
     
     return jsonify(status_data)
 

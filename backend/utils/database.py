@@ -432,11 +432,13 @@ def record_resource_usage(program_id, cpu_percent, memory_mb):
 
 
 def get_resource_usage(program_id, hours=24):
-    """리소스 사용량 조회 (시간 범위)."""
+    """리소스 사용량 조회 (시간 범위 - 필드 선택 최적화)."""
     conn = get_connection()
     cursor = conn.cursor()
+    # 필요한 필드만 선택 (id, timestamp 제외 - 프론트엔드에서 불필요)
     cursor.execute("""
-        SELECT * FROM resource_usage 
+        SELECT program_id, cpu_percent, memory_mb, timestamp 
+        FROM resource_usage 
         WHERE program_id = ? 
         AND timestamp >= datetime('now', '-' || ? || ' hours')
         ORDER BY timestamp ASC
