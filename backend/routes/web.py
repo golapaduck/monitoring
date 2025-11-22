@@ -143,9 +143,17 @@ def login():
         return _handle_login_failure(username, security_manager)
 
 
+@web_bp.route("/logout", methods=["GET"])
+def logout_page():
+    """로그아웃 페이지 (GET 요청 처리)."""
+    session.clear()
+    from flask import redirect
+    return redirect("/")
+
+
 @web_bp.route("/api/logout", methods=["POST"])
 def logout():
-    """로그아웃 API."""
+    """로그아웃 API (POST 요청 처리)."""
     session.clear()
     return _create_success_response(message="로그아웃되었습니다")
 
