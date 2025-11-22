@@ -1,14 +1,16 @@
 import { useState } from 'react'
-import { Play, Square, RotateCw, Trash2, Settings, AlertTriangle, Edit, BarChart3 } from 'lucide-react'
+import { Play, Square, RotateCw, Trash2, Settings, AlertTriangle, Edit, BarChart3, Puzzle } from 'lucide-react'
 import { startProgram, stopProgram, restartProgram, deleteProgram } from '../lib/api'
 import EditProgramModal from './EditProgramModal'
 import ResourceChart from './ResourceChart'
+import PluginModal from './PluginModal'
 
 export default function ProgramCard({ program, onUpdate }) {
   const [loading, setLoading] = useState(false)
   const [showForceStop, setShowForceStop] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showChart, setShowChart] = useState(false)
+  const [showPluginModal, setShowPluginModal] = useState(false)
 
   const handleStart = async () => {
     setLoading(true)
@@ -177,6 +179,14 @@ export default function ProgramCard({ program, onUpdate }) {
         </button>
 
         <button
+          onClick={() => setShowPluginModal(true)}
+          className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+          title="플러그인"
+        >
+          <Puzzle className="w-4 h-4" />
+        </button>
+
+        <button
           onClick={() => setShowEditModal(true)}
           disabled={loading}
           className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
@@ -214,6 +224,18 @@ export default function ProgramCard({ program, onUpdate }) {
           onClose={() => setShowEditModal(false)}
           onSuccess={() => {
             setShowEditModal(false)
+            onUpdate()
+          }}
+        />
+      )}
+
+      {/* 플러그인 모달 */}
+      {showPluginModal && (
+        <PluginModal
+          program={program}
+          onClose={() => setShowPluginModal(false)}
+          onSuccess={() => {
+            setShowPluginModal(false)
             onUpdate()
           }}
         />
