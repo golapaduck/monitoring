@@ -104,23 +104,17 @@ copy .env.example .env
 
 #### 🔧 개발 모드 (권장 - 개발 시)
 
-**방법 1: 자동 실행 스크립트 (권장)**
+**백엔드만 실행 (권장)**
 ```bash
-# Windows - 백엔드만 실행
-run-dev.bat
-
-# 프론트엔드는 별도 터미널에서 실행
-cd frontend
-npm run dev
+dev.bat
 ```
 
-**방법 2: 통합 실행 스크립트**
+**백엔드 + 프론트엔드 통합 실행**
 ```bash
-# Windows - 백엔드 + 프론트엔드 동시 실행
-start.bat
+dev.bat full
 ```
 
-**방법 3: 수동 실행**
+**수동 실행**
 ```bash
 # 백엔드 (터미널 1)
 cd backend
@@ -144,19 +138,19 @@ npm run dev
 
 #### 🚀 프로덕션 모드 (권장 - 배포 시)
 
-**방법 1: 통합 배포 스크립트 (권장)**
+**빌드 + 배포 (권장)**
 ```bash
-# Windows - 빌드 + 배포 한 번에
-deploy.bat
+prod.bat
 ```
 
-**방법 2: 단계별 실행**
+**빌드만**
 ```bash
-# 1단계: 빌드
-build.bat
+prod.bat build
+```
 
-# 2단계: 실행
-run-production.bat
+**실행만**
+```bash
+prod.bat run
 ```
 
 **접속:**

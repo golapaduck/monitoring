@@ -1,7 +1,12 @@
 @echo off
 chcp 65001 > nul
+
+:: 매개변수 확인 (full = 백엔드+프론트엔드, 없으면 백엔드만)
+set MODE=%1
+if "%MODE%"=="" set MODE=backend
+
 echo ========================================
-echo   Monitoring 프로젝트 (개발 모드 - 통합)
+echo   Monitoring 프로젝트 (개발 모드)
 echo ========================================
 echo.
 
@@ -13,9 +18,32 @@ if exist ".env" (
 echo ✅ 개발 모드 활성화
 echo.
 
-:: 서버 정보 출력
+:: 모드에 따라 실행
+if /i "%MODE%"=="full" goto FULL_MODE
+if /i "%MODE%"=="backend" goto BACKEND_MODE
+
+:BACKEND_MODE
 echo ========================================
-echo   개발 모드로 실행합니다 (통합)
+echo   백엔드만 실행합니다
+echo ========================================
+echo.
+echo 🔧 백엔드 서버: http://localhost:8080
+echo.
+echo 프론트엔드는 별도 터미널에서 실행:
+echo   cd frontend
+echo   npm run dev
+echo.
+echo 서버를 중지하려면 Ctrl+C를 누르세요
+echo ========================================
+echo.
+
+cd backend
+python -u app.py
+goto END
+
+:FULL_MODE
+echo ========================================
+echo   백엔드 + 프론트엔드 통합 실행
 echo ========================================
 echo.
 echo 🔧 백엔드 서버: http://localhost:8080
@@ -44,3 +72,6 @@ echo.
 echo ✅ 서버 시작 완료!
 echo.
 pause
+goto END
+
+:END
