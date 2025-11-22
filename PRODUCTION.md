@@ -46,11 +46,11 @@ python serve.py
 
 ### 3️⃣ 서버 확인
 브라우저에서 접속:
-- http://localhost:5000
-- http://127.0.0.1:5000
+- http://localhost:8080
+- http://127.0.0.1:8080
 
 헬스체크:
-- http://localhost:5000/health
+- http://localhost:8080/health
 
 ---
 
@@ -154,7 +154,7 @@ Win + R → taskschd.msc
 
 ### 헬스체크 엔드포인트
 ```
-GET http://localhost:5000/health
+GET http://localhost:8080/health
 ```
 
 **응답 예시:**
@@ -363,7 +363,7 @@ taskkill /PID <PID> /F
 문제가 발생하면:
 1. `logs/service_error.log` 확인
 2. GitHub Issues: https://github.com/golapaduck/monitoring/issues
-3. 헬스체크 엔드포인트 확인: http://localhost:5000/health
+3. 헬스체크 엔드포인트 확인: http://localhost:8080/health
 
 ---
 

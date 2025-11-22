@@ -18,9 +18,9 @@ npm run dev
 ## 🔧 Flask 백엔드 연동
 
 Vite 개발 서버는 자동으로 Flask API를 프록시합니다:
-- `/api/*` → `http://localhost:5000/api/*`
-- `/login` → `http://localhost:5000/login`
-- `/logout` → `http://localhost:5000/logout`
+- `/api/*` → `http://localhost:8080/api/*`
+- `/login` → `http://localhost:8080/login`
+- `/logout` → `http://localhost:8080/logout`
 
 ### 개발 환경 실행 순서
 
@@ -38,7 +38,7 @@ Vite 개발 서버는 자동으로 Flask API를 프록시합니다:
 
 3. **브라우저에서 접속**
    - React 개발 서버: `http://localhost:5173`
-   - Flask 백엔드: `http://localhost:5000`
+   - Flask 백엔드: `http://localhost:8080`
 
 ## 📦 프로덕션 빌드
 
@@ -98,7 +98,7 @@ server: {
 ### API 프록시 오류
 Flask 백엔드가 실행 중인지 확인:
 ```bash
-curl http://localhost:5000/api/status
+curl http://localhost:8080/api/status
 ```
 
 ### 빌드 오류

@@ -37,10 +37,10 @@ Monitoring 시스템을 24시간 자동으로 실행하고, 중단 시 자동 �
    - 프로그램/스크립트: `powershell.exe`
    - 인수 추가:
      ```
-     -ExecutionPolicy Bypass -File "C:\Programming\CascadeProjects\windsurf-project\scripts\start_monitoring.ps1"
+     -ExecutionPolicy Bypass -File "C:\Programming\CascadeProjects\monitoring\scripts\prod.bat"
      ```
      (실제 프로젝트 경로로 수정)
-   - 시작 위치: `C:\Programming\CascadeProjects\windsurf-project`
+   - 시작 위치: `C:\Programming\CascadeProjects\monitoring`
 
 ### 2-4. 조건 설정
 
@@ -76,7 +76,7 @@ Get-Process python | Where-Object { $_.CommandLine -like "*app.py*" }
 ```
 
 ### 웹 접속 확인
-브라우저에서 `http://localhost:5000` 접속
+브라우저에서 `http://localhost:8080` 접속
 
 ## 5. 문제 해결
 
