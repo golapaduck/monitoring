@@ -6,6 +6,7 @@ import { startProgram, stopProgram, restartProgram, deleteProgram } from '../lib
 import EditProgramModal from '../components/EditProgramModal'
 import ResourceChart from '../components/ResourceChart'
 import PluginTab from '../components/PluginTab'
+import PalworldControl from '../components/PalworldControl'
 
 export default function ProgramDetail() {
   const { id } = useParams()
@@ -318,17 +319,8 @@ export default function ProgramDetail() {
         )}
 
         {activeTab === 'control' && (
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">서버 조작</h2>
-            <p className="text-gray-500 mb-4">
-              Palworld, Minecraft 등의 게임 서버를 조작할 수 있습니다.
-              플러그인 탭에서 RCON 또는 Palworld REST API 플러그인을 설정한 후 사용하세요.
-            </p>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p className="text-sm text-blue-800">
-                💡 <strong>팁:</strong> 플러그인 탭에서 플러그인을 설정하면 여기서 빠른 액션을 실행할 수 있습니다.
-              </p>
-            </div>
+          <div>
+            <PalworldControl programId={program.id} />
           </div>
         )}
 

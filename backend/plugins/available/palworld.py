@@ -17,14 +17,12 @@ class PalworldPlugin(PluginBase):
         """플러그인 초기화."""
         super().__init__(program_id, config)
         self.base_url = None
-        self.username = None
         self.password = None
         
         if config:
             host = config.get("host", "localhost")
             port = config.get("port", 8212)
             self.base_url = f"http://{host}:{port}/v1/api"
-            self.username = config.get("username", "admin")
             self.password = config.get("password", "")
     
     def get_name(self) -> str:
@@ -51,21 +49,15 @@ class PalworldPlugin(PluginBase):
                     "maximum": 65535,
                     "description": "REST API 포트 (기본: 8212)"
                 },
-                "username": {
-                    "type": "string",
-                    "title": "사용자 이름",
-                    "default": "admin",
-                    "description": "REST API 인증 사용자 이름"
-                },
                 "password": {
                     "type": "string",
-                    "title": "비밀번호",
+                    "title": "Admin 비밀번호",
                     "default": "",
-                    "description": "REST API 인증 비밀번호",
+                    "description": "PalWorldSettings.ini의 AdminPassword 값",
                     "format": "password"
                 }
             },
-            "required": ["host", "port", "username", "password"]
+            "required": ["password"]
         }
     
     def get_actions(self) -> Dict[str, Dict[str, Any]]:
@@ -265,14 +257,10 @@ class PalworldPlugin(PluginBase):
         except (ValueError, TypeError):
             return False, "포트는 숫자여야 합니다"
         
-        # username과 password는 필수
-        username = config.get("username", "").strip()
-        if not username:
-            return False, "사용자 이름이 필요합니다"
-        
+        # password는 필수
         password = config.get("password", "").strip()
         if not password:
-            return False, "비밀번호가 필요합니다"
+            return False, "Admin 비밀번호가 필요합니다"
         
         return True, None
     
@@ -307,7 +295,8 @@ class PalworldPlugin(PluginBase):
                 }
             
             url = f"{self.base_url}{endpoint}"
-            auth = (self.username, self.password) if self.username and self.password else None
+            # Palworld REST API는 Basic Auth 사용: username은 "admin", password는 AdminPassword
+            auth = ("admin", self.password) if self.password else None
             
             response = requests.request(
                 method=method,
