@@ -269,6 +269,65 @@ http://localhost:8080
 
 ---
 
+## 보안 및 안정성
+
+### 보안 기능
+- ✅ **CORS 설정**: 환경별 분리 (개발/프로덕션)
+- ✅ **세션 보안**: HttpOnly, Secure 플래그
+- ✅ **Rate Limiting**: API별 요청 속도 제한
+- ✅ **입력 검증**: 경로, 필드 검증
+- ✅ **SQL Injection 방지**: 파라미터화된 쿼리
+- ✅ **비밀번호 해싱**: bcrypt 사용
+
+### Rate Limiting 정책
+| API | 제한 |
+|-----|------|
+| 인증 | 5 per minute |
+| 프로그램 관리 | 30 per minute |
+| 프로그램 액션 | 10 per minute |
+| 메트릭 | 100 per minute |
+
+### 에러 처리
+- 전역 에러 핸들러 (404, 500)
+- 표준 에러 응답 형식
+- 에러 코드 및 상세 정보
+
+---
+
+## 성능 모니터링
+
+### 성능 통계 API (관리자만)
+```bash
+# 모든 엔드포인트 성능 통계
+GET /api/admin/performance
+
+# 특정 엔드포인트 성능 통계
+GET /api/admin/performance/{endpoint}
+
+# 성능 통계 초기화
+DELETE /api/admin/performance
+```
+
+### 응답 시간 모니터링
+```python
+from utils.performance_monitor import monitor_performance
+
+@monitor_performance("endpoint_name")
+def endpoint():
+    ...
+```
+
+### 느린 쿼리 감지
+```python
+from utils.performance_monitor import log_slow_queries
+
+@log_slow_queries(threshold=0.5)
+def slow_operation():
+    ...
+```
+
+---
+
 ## 프로젝트 구조
 
 ```
