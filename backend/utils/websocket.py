@@ -24,7 +24,7 @@ def init_socketio(app):
         app,
         cors_allowed_origins="*",     # 개발 시 모든 origin 허용
         async_mode='threading',        # threading 모드 사용
-        logger=True,                   # 로깅 활성화 (디버깅용)
+        logger=False,                  # 로깅 비활성화 (werkzeug 에러 방지)
         engineio_logger=False,         # Engine.IO 로깅은 비활성화
         ping_timeout=60,               # ping 타임아웃 (초)
         ping_interval=25,              # ping 간격 (초)
