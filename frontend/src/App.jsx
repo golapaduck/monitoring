@@ -29,9 +29,9 @@ function App() {
           setIsAuthenticated(true)
           setUser({
             username: data.username,
-            role: data.role
+            role: data.role || 'admin'  // role 없으면 admin으로 기본값
           })
-          console.log('✅ 세션 확인 성공:', data.username, data.role)
+          console.log('✅ 세션 확인 성공:', data.username, data.role || 'admin')
         } else {
           // 세션은 있지만 로그인 정보가 없는 경우
           setIsAuthenticated(false)

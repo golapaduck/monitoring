@@ -243,7 +243,7 @@ export default function DashboardPage({ user, onLogout }) {
                 key={program.id}
                 program={program}
                 onUpdate={fetchPrograms}
-                user={user}
+                isAdmin={isAdmin}
               />
             ))}
           </div>

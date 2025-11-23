@@ -3,11 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { Play, Square, ExternalLink, Zap } from 'lucide-react'
 import { startProgram, stopProgram, executePluginAction } from '../lib/api'
 
-function ProgramCard({ program, onUpdate, user }) {
+function ProgramCard({ program, onUpdate, isAdmin }) {
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [showPluginActions, setShowPluginActions] = useState(false)
-  const isAdmin = user?.role === 'admin'
   
   // 펠월드 플러그인 여부 확인
   const hasPalworldPlugin = program.plugins?.some(p => p.plugin_id === 'palworld')
@@ -270,7 +269,7 @@ function ProgramCard({ program, onUpdate, user }) {
 
 // 메모이제이션 적용 (props 변경 시에만 리렌더링)
 export default memo(ProgramCard, (prevProps, nextProps) => {
-  // program과 user가 같으면 리렌더링 스킵
+  // program과 isAdmin이 같으면 리렌더링 스킵
   return (
     prevProps.program.id === nextProps.program.id &&
     prevProps.program.running === nextProps.program.running &&
@@ -278,6 +277,6 @@ export default memo(ProgramCard, (prevProps, nextProps) => {
     prevProps.program.shutdown_remaining === nextProps.program.shutdown_remaining &&
     prevProps.program.cpu_percent === nextProps.program.cpu_percent &&
     prevProps.program.memory_mb === nextProps.program.memory_mb &&
-    prevProps.user?.role === nextProps.user?.role
+    prevProps.isAdmin === nextProps.isAdmin
   )
 })
